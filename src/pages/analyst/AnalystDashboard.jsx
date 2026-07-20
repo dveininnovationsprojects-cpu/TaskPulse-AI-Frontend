@@ -22,7 +22,6 @@ const AnalystDashboard = () => {
   return (
     <DashboardLayout 
       title="TaskPulse AI" 
-      modules={analystModules} 
       activeModule={activeModule} 
       onModuleChange={setActiveModule}
     >
