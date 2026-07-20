@@ -19,11 +19,22 @@ const Login = () => {
 
     try {
       const response = await api.post('/api/auth/login', { email, password });
-      const { accessToken, role } = response.data;
+      const { accessToken, role, name } = response.data;
       
       localStorage.setItem('token', accessToken);
       if (role) {
         localStorage.setItem('role', role);
+      }
+      
+      let userName = name;
+      if (!userName && accessToken) {
+        try {
+          const decoded = jwtDecode(accessToken);
+          userName = decoded.name || decoded.sub; // Fallback to email/sub
+        } catch(e) {}
+      }
+      if (userName) {
+        localStorage.setItem('name', userName);
       }
       
       // Navigate based on role returned from server. Fallback to developer if undefined.
