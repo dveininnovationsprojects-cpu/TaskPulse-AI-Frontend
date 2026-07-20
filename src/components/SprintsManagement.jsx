@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Edit2, Trash2, X, ChevronDown, Info } from 'lucide-react';
 import api from '../services/api';
-import './ProjectsManagement.css';
+import './SprintsManagement.css';
 
 const TooltipText = ({ text, maxLength = 25 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -80,9 +80,9 @@ const TooltipText = ({ text, maxLength = 25 }) => {
   );
 };
 
-const ProjectsManagement = ({ role }) => {
+const SprintsManagement = ({ role }) => {
+  const [sprints, setSprints] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -93,17 +93,17 @@ const ProjectsManagement = ({ role }) => {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
-  const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [currentSprintId, setCurrentSprintId] = useState(null);
   
   // Form state
   const [formData, setFormData] = useState({
-    projectName: '',
-    clientName: '',
-    ownerId: '',
+    projectId: '',
+    sprintName: '',
     startDate: '',
-    deadline: '',
+    endDate: '',
+    goal: '',
     status: 'PLANNING',
-    priority: 'MEDIUM'
+    capacityHours: ''
   });
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -113,33 +113,29 @@ const ProjectsManagement = ({ role }) => {
   const [confirmConfig, setConfirmConfig] = useState({ action: '', title: '', message: '', payload: null });
 
   // Dropdown state
-  const [isOwnerDropdownOpen, setIsOwnerDropdownOpen] = useState(false);
-  const ownerDropdownRef = useRef(null);
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const projectDropdownRef = useRef(null);
 
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef(null);
 
-  const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
-  const priorityDropdownRef = useRef(null);
-
   // Authorization checks
   const isAdmin = role === 'ADMIN';
   const isPM = role === 'PROJECT_MANAGER';
-  const canEdit = isAdmin || isPM;
-  const canDelete = isAdmin;
+  const isLead = role === 'TEAM_LEAD';
+  
+  const canEdit = isAdmin || isPM || isLead;
+  const canDelete = isAdmin || isPM;
 
   useEffect(() => {
     fetchData();
 
     const handleClickOutside = (event) => {
-      if (ownerDropdownRef.current && !ownerDropdownRef.current.contains(event.target)) {
-        setIsOwnerDropdownOpen(false);
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target)) {
+        setIsProjectDropdownOpen(false);
       }
       if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
         setIsStatusDropdownOpen(false);
-      }
-      if (priorityDropdownRef.current && !priorityDropdownRef.current.contains(event.target)) {
-        setIsPriorityDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -149,12 +145,12 @@ const ProjectsManagement = ({ role }) => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [projRes, userRes] = await Promise.all([
-        api.get('/api/projects').catch(() => ({ data: [] })),
-        api.get('/api/users').catch(() => ({ data: [] }))
+      const [sprintRes, projRes] = await Promise.all([
+        api.get('/api/sprints').catch(() => ({ data: [] })),
+        api.get('/api/projects').catch(() => ({ data: [] }))
       ]);
+      setSprints(sprintRes.data || []);
       setProjects(projRes.data || []);
-      setUsers(userRes.data || []);
     } catch (err) {
       setError('Failed to fetch data. Please try again later.');
       console.error(err);
@@ -163,42 +159,39 @@ const ProjectsManagement = ({ role }) => {
     }
   };
 
-  const fetchProjects = async () => {
+  const fetchSprints = async () => {
     try {
-      const response = await api.get('/api/projects');
-      setProjects(response.data);
+      const response = await api.get('/api/sprints');
+      setSprints(response.data);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Potential owners (typically PROJECT_MANAGER or ADMIN)
-  const potentialOwners = users.filter(u => u.role === 'PROJECT_MANAGER' || u.role === 'ADMIN');
-
-  const handleOpenModal = (mode, project = null) => {
+  const handleOpenModal = (mode, sprint = null) => {
     setModalMode(mode);
     setFormError('');
-    if (mode === 'edit' && project) {
-      setCurrentProjectId(project.id);
+    if (mode === 'edit' && sprint) {
+      setCurrentSprintId(sprint.id);
       setFormData({
-        projectName: project.projectName || '',
-        clientName: project.clientName || '',
-        ownerId: project.owner ? project.owner.id.toString() : '',
-        startDate: project.startDate || '',
-        deadline: project.deadline || '',
-        status: project.status || 'PLANNING',
-        priority: project.priority || 'MEDIUM'
+        projectId: sprint.projectId ? sprint.projectId.toString() : '',
+        sprintName: sprint.sprintName || '',
+        startDate: sprint.startDate || '',
+        endDate: sprint.endDate || '',
+        goal: sprint.goal || '',
+        status: sprint.status || 'PLANNING',
+        capacityHours: sprint.capacityHours ? sprint.capacityHours.toString() : ''
       });
     } else {
-      setCurrentProjectId(null);
+      setCurrentSprintId(null);
       setFormData({
-        projectName: '',
-        clientName: '',
-        ownerId: '',
+        projectId: '',
+        sprintName: '',
         startDate: '',
-        deadline: '',
+        endDate: '',
+        goal: '',
         status: 'PLANNING',
-        priority: 'MEDIUM'
+        capacityHours: ''
       });
     }
     setShowModal(true);
@@ -217,26 +210,26 @@ const ProjectsManagement = ({ role }) => {
     e.preventDefault();
     setFormError('');
 
-    if (!formData.projectName || !formData.ownerId) {
-       setFormError('Project Name and Owner are required.');
+    if (!formData.projectId || !formData.sprintName || !formData.startDate || !formData.endDate) {
+       setFormError('Project, Sprint Name, Start Date, and End Date are required.');
        return;
     }
 
     setConfirmConfig({
       action: modalMode,
-      title: modalMode === 'create' ? 'Confirm Add Project' : 'Confirm Update Project',
-      message: modalMode === 'create' ? 'Are you sure you want to create this project?' : 'Are you sure you want to update this project?',
+      title: modalMode === 'create' ? 'Confirm Add Sprint' : 'Confirm Update Sprint',
+      message: modalMode === 'create' ? 'Are you sure you want to create this sprint?' : 'Are you sure you want to update this sprint?',
       payload: { ...formData }
     });
     setShowConfirmModal(true);
   };
 
-  const handleDeleteClick = (project) => {
+  const handleDeleteClick = (sprint) => {
     setConfirmConfig({
       action: 'delete',
-      title: 'Confirm Delete Project',
-      message: `Are you sure you want to completely delete the project "${project.projectName}"? This action cannot be undone.`,
-      payload: project
+      title: 'Confirm Delete Sprint',
+      message: `Are you sure you want to delete the sprint "${sprint.sprintName}"? This action cannot be undone.`,
+      payload: sprint
     });
     setShowConfirmModal(true);
   };
@@ -250,27 +243,35 @@ const ProjectsManagement = ({ role }) => {
       
       if (action === 'create' || action === 'edit') {
         const data = {
-          projectName: payload.projectName,
-          clientName: payload.clientName,
-          startDate: payload.startDate || null,
-          deadline: payload.deadline || null,
+          projectId: parseInt(payload.projectId, 10),
+          sprintName: payload.sprintName,
+          startDate: payload.startDate,
+          endDate: payload.endDate,
+          goal: payload.goal,
           status: payload.status,
-          priority: payload.priority
+          capacityHours: payload.capacityHours ? parseFloat(payload.capacityHours) : null
         };
         
         if (action === 'create') {
-          data.owner = { id: parseInt(payload.ownerId, 10) };
-          await api.post('/api/projects', data);
+          await api.post('/api/sprints', data);
         } else {
-          data.ownerId = parseInt(payload.ownerId, 10);
-          await api.put(`/api/projects/${currentProjectId}`, data);
+          // SprintUpdateRequest doesn't need projectId according to backend dto SprintUpdateRequest
+          const updateData = {
+            sprintName: data.sprintName,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            goal: data.goal,
+            status: data.status,
+            capacityHours: data.capacityHours
+          };
+          await api.put(`/api/sprints/${currentSprintId}`, updateData);
         }
         
-        await fetchProjects();
+        await fetchSprints();
         handleCloseModal();
       } else if (action === 'delete') {
-        await api.delete(`/api/projects/${payload.id}`);
-        await fetchProjects();
+        await api.delete(`/api/sprints/${payload.id}`);
+        await fetchSprints();
       }
       
       setShowConfirmModal(false);
@@ -290,8 +291,8 @@ const ProjectsManagement = ({ role }) => {
   // Pagination Logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentProjects = projects.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(projects.length / itemsPerPage);
+  const currentSprints = sprints.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(sprints.length / itemsPerPage);
   const displayTotalPages = totalPages || 1;
 
   const getPaginationNumbers = () => {
@@ -315,7 +316,7 @@ const ProjectsManagement = ({ role }) => {
   return (
     <div className="module-container">
       <div className="module-header">
-        <h2 className="module-title">Projects Overview</h2>
+        <h2 className="module-title">Sprints Overview</h2>
         {canEdit && (
           <div className="add-btn-wrapper">
             <button 
@@ -324,7 +325,7 @@ const ProjectsManagement = ({ role }) => {
               onClick={() => handleOpenModal('create')}
             >
               <Plus size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} />
-              Add Project
+              Add Sprint
             </button>
           </div>
         )}
@@ -334,47 +335,51 @@ const ProjectsManagement = ({ role }) => {
         {error && <div className="error-message">{error}</div>}
         
         {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#11b1c6' }}>Loading projects...</div>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#11b1c6' }}>Loading sprints...</div>
         ) : (
           <div className="table-responsive">
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th>Project Name</th>
-                  <th>Client</th>
-                  <th>Owner</th>
-                  <th>Deadline</th>
+                  <th>Sprint Name</th>
+                  <th>Project</th>
+                  <th>Duration</th>
+                  <th>Goal</th>
+                  <th>Capacity</th>
                   <th>Status</th>
-                  <th>Priority</th>
                   {canEdit && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
-                {currentProjects.length === 0 ? (
+                {currentSprints.length === 0 ? (
                   <tr>
                     <td colSpan={canEdit ? 7 : 6} style={{ textAlign: 'center', padding: '30px' }}>
-                      No projects found.
+                      No sprints found.
                     </td>
                   </tr>
                 ) : (
-                  currentProjects.map(proj => (
-                    <tr key={proj.id}>
+                  currentSprints.map(sprint => (
+                    <tr key={sprint.id}>
                       <td style={{ fontWeight: 600 }}>
-                        <TooltipText text={proj.projectName} maxLength={20} />
+                        <TooltipText text={sprint.sprintName} maxLength={20} />
                       </td>
                       <td>
-                        <TooltipText text={proj.clientName || '-'} maxLength={20} />
+                        <TooltipText text={sprint.projectName || '-'} maxLength={20} />
                       </td>
-                      <td>{proj.owner ? proj.owner.name : '-'}</td>
-                      <td>{proj.deadline || '-'}</td>
-                      <td><span className={`status-badge status-${proj.status}`}>{proj.status}</span></td>
-                      <td className={`priority-${proj.priority}`}>{proj.priority}</td>
+                      <td>
+                        <span style={{ fontSize: '0.85rem' }}>{sprint.startDate} to {sprint.endDate}</span>
+                      </td>
+                      <td>
+                        <TooltipText text={sprint.goal || '-'} maxLength={30} />
+                      </td>
+                      <td>{sprint.capacityHours ? `${sprint.capacityHours} hrs` : '-'}</td>
+                      <td><span className={`status-badge status-${sprint.status}`}>{sprint.status}</span></td>
                       {canEdit && (
                         <td style={{ textAlign: 'right' }}>
                           <button 
                             className="action-btn edit-btn" 
                             title="Edit"
-                            onClick={() => handleOpenModal('edit', proj)}
+                            onClick={() => handleOpenModal('edit', sprint)}
                           >
                             <Edit2 size={16} />
                           </button>
@@ -382,7 +387,7 @@ const ProjectsManagement = ({ role }) => {
                             <button 
                               className="action-btn delete-btn" 
                               title="Delete"
-                              onClick={() => handleDeleteClick(proj)}
+                              onClick={() => handleDeleteClick(sprint)}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -433,116 +438,48 @@ const ProjectsManagement = ({ role }) => {
           <div className="modal-content">
             <div className="modal-bg-glass"></div>
             <div className="modal-header">
-              <h3>{modalMode === 'create' ? 'Add New Project' : 'Edit Project'}</h3>
+              <h3>{modalMode === 'create' ? 'Add New Sprint' : 'Edit Sprint'}</h3>
               <button className="modal-close" onClick={handleCloseModal}><X size={20} /></button>
             </div>
             
             <form onSubmit={handleSubmit} className="modal-form">
               {formError && <div className="error-message" style={{ padding: '8px 12px', marginBottom: '16px' }}>{formError}</div>}
               
-              <div className="form-group">
-                <label>Project Name *</label>
-                <input
-                  type="text"
-                  name="projectName"
-                  className="form-control"
-                  placeholder="e.g. TaskPulse AI Backend"
-                  value={formData.projectName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Client Name</label>
-                <input
-                  type="text"
-                  name="clientName"
-                  className="form-control"
-                  placeholder="e.g. Nexora Solutions"
-                  value={formData.clientName}
-                  onChange={handleInputChange}
-                />
-              </div>
-              
-              <div className="form-group" style={{ position: 'relative' }} ref={ownerDropdownRef}>
-                <label>Project Owner *</label>
+              <div className="form-group" style={{ position: 'relative' }} ref={projectDropdownRef}>
+                <label>Project *</label>
                 <div 
                   className="form-control" 
-                  onClick={() => setIsOwnerDropdownOpen(!isOwnerDropdownOpen)}
-                  style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    cursor: 'pointer',
-                    position: 'relative'
-                  }}
+                  onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: modalMode === 'edit' ? 'not-allowed' : 'pointer', position: 'relative', opacity: modalMode === 'edit' ? 0.7 : 1 }}
                 >
-                  <span style={{ color: formData.ownerId ? '#0c5965' : '#89c4d1' }}>
-                    {formData.ownerId 
-                      ? potentialOwners.find(u => u.id.toString() === formData.ownerId.toString())?.name || 'Unknown'
-                      : 'Select project owner...'}
+                  <span style={{ color: formData.projectId ? '#0c5965' : '#89c4d1' }}>
+                    {formData.projectId 
+                      ? projects.find(p => p.id.toString() === formData.projectId.toString())?.projectName || 'Unknown'
+                      : 'Select Project...'}
                   </span>
-                  <ChevronDown 
-                    size={20} 
-                    color="#11b1c6" 
-                    style={{ 
-                      transform: isOwnerDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', 
-                      transition: 'transform 0.25s ease' 
-                    }} 
-                  />
+                  {modalMode !== 'edit' && (
+                    <ChevronDown size={20} color="#11b1c6" style={{ transform: isProjectDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }} />
+                  )}
                 </div>
                 
-                {isOwnerDropdownOpen && (
-                  <div 
-                    className="custom-select-options"
-                    style={{
-                      position: 'absolute',
-                      width: '100%',
-                      backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                      backdropFilter: 'blur(12px)',
-                      border: '1px solid rgba(17, 177, 198, 0.2)',
-                      borderRadius: '12px',
-                      boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)',
-                      zIndex: 100,
-                      overflowY: 'auto',
-                      maxHeight: '150px',
-                      marginTop: '4px',
-                      padding: '4px 0'
-                    }}
-                  >
-                    {potentialOwners.length === 0 ? (
-                      <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '0.9rem' }}>No eligible owners available.</div>
+                {isProjectDropdownOpen && modalMode !== 'edit' && (
+                  <div className="custom-select-options" style={{ position: 'absolute', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(12px)', border: '1px solid rgba(17, 177, 198, 0.2)', borderRadius: '12px', boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)', zIndex: 100, overflowY: 'auto', maxHeight: '150px', marginTop: '4px', padding: '4px 0' }}>
+                    {projects.length === 0 ? (
+                      <div style={{ padding: '8px 16px', color: '#64748b', fontSize: '0.9rem' }}>No projects available.</div>
                     ) : (
-                      potentialOwners.map(owner => (
+                      projects.map(proj => (
                         <div
-                          key={owner.id}
+                          key={proj.id}
                           className="custom-select-option"
                           onClick={() => {
-                            setFormData(prev => ({ ...prev, ownerId: owner.id.toString() }));
-                            setIsOwnerDropdownOpen(false);
+                            setFormData(prev => ({ ...prev, projectId: proj.id.toString() }));
+                            setIsProjectDropdownOpen(false);
                           }}
-                          style={{
-                            padding: '10px 16px',
-                            cursor: 'pointer',
-                            color: formData.ownerId === owner.id.toString() ? '#34c3d3' : '#0c5965',
-                            fontWeight: formData.ownerId === owner.id.toString() ? '600' : '500',
-                            backgroundColor: formData.ownerId === owner.id.toString() ? 'rgba(52, 195, 211, 0.08)' : 'transparent',
-                            transition: 'all 0.15s ease',
-                            fontSize: '0.9rem'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = 'rgba(52, 195, 211, 0.08)';
-                            e.target.style.color = '#34c3d3';
-                          }}
-                          onMouseLeave={(e) => {
-                            if (formData.ownerId !== owner.id.toString()) {
-                              e.target.style.backgroundColor = 'transparent';
-                              e.target.style.color = '#0c5965';
-                            }
-                          }}
+                          style={{ padding: '10px 16px', cursor: 'pointer', color: formData.projectId === proj.id.toString() ? '#34c3d3' : '#0c5965', fontWeight: formData.projectId === proj.id.toString() ? '600' : '500', backgroundColor: formData.projectId === proj.id.toString() ? 'rgba(52, 195, 211, 0.08)' : 'transparent', transition: 'all 0.15s ease', fontSize: '0.9rem' }}
+                          onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(52, 195, 211, 0.08)'; e.target.style.color = '#34c3d3'; }}
+                          onMouseLeave={(e) => { if (formData.projectId !== proj.id.toString()) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
                         >
-                          {owner.name} <span style={{ color: '#64748b', fontSize: '0.8rem', marginLeft: '4px' }}>({owner.role})</span>
+                          {proj.projectName}
                         </div>
                       ))
                     )}
@@ -550,29 +487,56 @@ const ProjectsManagement = ({ role }) => {
                 )}
               </div>
 
+              <div className="form-group">
+                <label>Sprint Name *</label>
+                <input
+                  type="text"
+                  name="sprintName"
+                  className="form-control"
+                  placeholder="e.g. Sprint 1 - Auth Module"
+                  value={formData.sprintName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
               <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label>Start Date</label>
+                  <label>Start Date *</label>
                   <input
                     type="date"
                     name="startDate"
                     className="form-control"
                     value={formData.startDate}
                     onChange={handleInputChange}
+                    required
                   />
                 </div>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label>Deadline</label>
+                  <label>End Date *</label>
                   <input
                     type="date"
-                    name="deadline"
+                    name="endDate"
                     className="form-control"
-                    value={formData.deadline}
+                    value={formData.endDate}
                     onChange={handleInputChange}
+                    required
                   />
                 </div>
               </div>
               
+              <div className="form-group">
+                <label>Sprint Goal</label>
+                <input
+                  type="text"
+                  name="goal"
+                  className="form-control"
+                  placeholder="e.g. Complete User Registration and Login flow"
+                  value={formData.goal}
+                  onChange={handleInputChange}
+                />
+              </div>
+
               <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }} ref={statusDropdownRef}>
                   <label>Status</label>
@@ -588,7 +552,7 @@ const ProjectsManagement = ({ role }) => {
                   </div>
                   {isStatusDropdownOpen && (
                     <div className="custom-select-options" style={{ position: 'absolute', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(12px)', border: '1px solid rgba(17, 177, 198, 0.2)', borderRadius: '12px', boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)', zIndex: 100, overflowY: 'auto', maxHeight: '150px', marginTop: '4px', padding: '4px 0' }}>
-                      {['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED'].map(status => (
+                      {['PLANNING', 'ACTIVE', 'COMPLETED', 'CLOSED'].map(status => (
                         <div
                           key={status}
                           className="custom-select-option"
@@ -603,34 +567,19 @@ const ProjectsManagement = ({ role }) => {
                     </div>
                   )}
                 </div>
-                <div className="form-group" style={{ flex: 1, position: 'relative' }} ref={priorityDropdownRef}>
-                  <label>Priority</label>
-                  <div 
-                    className="form-control" 
-                    onClick={() => setIsPriorityDropdownOpen(!isPriorityDropdownOpen)}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', position: 'relative' }}
-                  >
-                    <span style={{ color: formData.priority ? '#0c5965' : '#89c4d1' }}>
-                      {formData.priority ? (formData.priority.charAt(0) + formData.priority.slice(1).toLowerCase()) : 'Select Priority'}
-                    </span>
-                    <ChevronDown size={20} color="#11b1c6" style={{ transform: isPriorityDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }} />
-                  </div>
-                  {isPriorityDropdownOpen && (
-                    <div className="custom-select-options" style={{ position: 'absolute', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(12px)', border: '1px solid rgba(17, 177, 198, 0.2)', borderRadius: '12px', boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)', zIndex: 100, overflowY: 'auto', maxHeight: '150px', marginTop: '4px', padding: '4px 0' }}>
-                      {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(priority => (
-                        <div
-                          key={priority}
-                          className="custom-select-option"
-                          onClick={() => { setFormData(prev => ({ ...prev, priority })); setIsPriorityDropdownOpen(false); }}
-                          style={{ padding: '10px 16px', cursor: 'pointer', color: formData.priority === priority ? '#34c3d3' : '#0c5965', fontWeight: formData.priority === priority ? '600' : '500', backgroundColor: formData.priority === priority ? 'rgba(52, 195, 211, 0.08)' : 'transparent', transition: 'all 0.15s ease', fontSize: '0.9rem' }}
-                          onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(52, 195, 211, 0.08)'; e.target.style.color = '#34c3d3'; }}
-                          onMouseLeave={(e) => { if (formData.priority !== priority) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
-                        >
-                          {(priority.charAt(0) + priority.slice(1).toLowerCase())}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Capacity (Hours)</label>
+                  <input
+                    type="number"
+                    name="capacityHours"
+                    className="form-control"
+                    placeholder="e.g. 120"
+                    value={formData.capacityHours}
+                    onChange={handleInputChange}
+                    min="0"
+                    step="0.5"
+                  />
                 </div>
               </div>
 
@@ -639,7 +588,7 @@ const ProjectsManagement = ({ role }) => {
                   Cancel
                 </button>
                 <button type="submit" className="btn-pill" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : 'Save Project'}
+                  {isSubmitting ? 'Saving...' : 'Save Sprint'}
                 </button>
               </div>
             </form>
@@ -685,4 +634,4 @@ const ProjectsManagement = ({ role }) => {
   );
 };
 
-export default ProjectsManagement;
+export default SprintsManagement;
