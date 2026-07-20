@@ -51,7 +51,7 @@ const Login = () => {
         <svg className="background-svg" viewBox="0 0 1440 1024" preserveAspectRatio="none">
           <defs>
             <filter id="wave-shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="10" dy="10" stdDeviation="20" flood-color="#11b1c6" flood-opacity="0.12" />
+              <feDropShadow dx="10" dy="10" stdDeviation="20" floodColor="#11b1c6" floodOpacity="0.12" />
             </filter>
           </defs>
 
