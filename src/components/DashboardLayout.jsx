@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import './DashboardLayout.css';
@@ -7,10 +8,33 @@ import './DashboardLayout.css';
 const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, onModuleChange, children }) => {
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
+
+  useEffect(() => {
+    const role = localStorage.getItem('role');
+    const token = localStorage.getItem('token');
+    let name = localStorage.getItem('name');
+
+    if (role) {
+      setUserRole(role.replace('_', ' '));
+    }
+
+    if (!name && token) {
+      try {
+        const decoded = jwtDecode(token);
+        name = decoded.name || decoded.sub || 'User';
+      } catch (e) {
+        name = 'User';
+      }
+    }
+    setUserName(name || 'User');
+  }, []);
 
   const confirmLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
+    localStorage.removeItem('name');
     navigate('/login');
   };
 
@@ -53,10 +77,22 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
               {mod.label}
             </button>
           ))}
-          {/* Optional Logout Button inside Nav or a User Profile icon */}
-          <button onClick={() => setShowLogoutConfirm(true)} className="logout-btn" title="Logout">
-            <LogOut size={18} />
-          </button>
+          {/* User Profile & Logout */}
+          <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', paddingLeft: '24px', borderLeft: '1px solid rgba(17, 177, 198, 0.2)', gap: '16px' }}>
+            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column' }}>
+              <span style={{ color: '#0c5965', fontWeight: '700', fontSize: '0.95rem', letterSpacing: '0.5px' }}>{userName}</span>
+              <span style={{ color: '#11b1c6', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '1px' }}>{userRole}</span>
+            </div>
+            <button 
+              onClick={() => setShowLogoutConfirm(true)} 
+              title="Logout" 
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '10px', borderRadius: '50%', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.1)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.transform = 'none'; }}
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
       </nav>
 
