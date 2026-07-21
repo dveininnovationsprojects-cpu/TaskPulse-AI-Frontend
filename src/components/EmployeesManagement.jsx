@@ -7,6 +7,7 @@ import './EmployeesManagement.css';
 const EmployeesManagement = ({ role }) => {
   const [employees, setEmployees] = useState([]);
   const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   
@@ -61,12 +62,14 @@ const EmployeesManagement = ({ role }) => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [empRes, userRes] = await Promise.all([
+      const [empRes, userRes, projRes] = await Promise.all([
         api.get('/api/employees').catch(() => ({ data: [] })),
-        api.get('/api/users').catch(() => ({ data: [] }))
+        api.get('/api/users').catch(() => ({ data: [] })),
+        api.get('/api/projects').catch(() => ({ data: [] }))
       ]);
       setEmployees(empRes.data || []);
       setUsers(userRes.data || []);
+      setProjects(projRes.data || []);
     } catch (err) {
       setError('Failed to fetch data. Please try again later.');
       console.error(err);
@@ -445,13 +448,17 @@ const EmployeesManagement = ({ role }) => {
                   {formData.userId && (() => {
                     const sel = pendingUsers.find(u => u.id.toString() === formData.userId.toString());
                     if (!sel) return null;
-                    const proj = sel.assignedProject || (sel.projectId ? { id: sel.projectId, projectName: `Project #${sel.projectId}` } : null);
+                    
+                    const pId = sel.assignedProjectId || sel.projectId || sel.assignedProject?.id;
+                    const foundProj = projects.find(p => p.id?.toString() === pId?.toString());
+                    const pName = sel.assignedProjectName || sel.assignedProject?.projectName || foundProj?.projectName || (pId ? `Project #${pId}` : null);
+                    
                     return (
                       <div style={{ marginTop: '10px', padding: '10px 14px', borderRadius: '12px', background: 'rgba(17, 177, 198, 0.08)', border: '1px solid rgba(17, 177, 198, 0.2)', fontSize: '0.85rem', color: '#0c5965' }}>
                         <div><strong>Role:</strong> <span style={{ color: '#11b1c6', fontWeight: '600' }}>{sel.role}</span></div>
-                        {proj ? (
+                        {pId ? (
                           <div style={{ marginTop: '4px' }}>
-                            <strong>Requested Project:</strong> <span style={{ color: '#0ea5e9', fontWeight: '600' }}>{proj.projectName} (ID: {proj.id})</span>
+                            <strong>Requested Project:</strong> <span style={{ color: '#0ea5e9', fontWeight: '600' }}>{pName} (ID: {pId})</span>
                           </div>
                         ) : sel.role === 'CLIENT_VIEWER' ? (
                           <div style={{ marginTop: '4px', color: '#64748b' }}>

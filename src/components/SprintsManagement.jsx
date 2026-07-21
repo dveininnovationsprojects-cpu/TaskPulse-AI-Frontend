@@ -142,6 +142,12 @@ const SprintsManagement = ({ role }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const normalizeArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (data && typeof data === 'object' && data.id) return [data];
+    return [];
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -149,8 +155,32 @@ const SprintsManagement = ({ role }) => {
         api.get('/api/sprints').catch(() => ({ data: [] })),
         api.get('/api/projects').catch(() => ({ data: [] }))
       ]);
-      setSprints(sprintRes.data || []);
-      setProjects(projRes.data || []);
+
+      let sprintList = normalizeArray(sprintRes.data);
+      let projList = normalizeArray(projRes.data);
+
+      if (role === 'CLIENT_VIEWER' && projList.length === 0) {
+        const storedId = localStorage.getItem('projectId') || localStorage.getItem('registeredProjectId');
+        const candidateIds = storedId 
+          ? [storedId, ...Array.from({ length: 20 }, (_, i) => (i + 1).toString()).filter(id => id !== storedId)] 
+          : Array.from({ length: 20 }, (_, i) => (i + 1).toString());
+
+        for (const id of candidateIds) {
+          try {
+            const specificProjRes = await api.get(`/api/projects/${id}`);
+            if (specificProjRes.data && specificProjRes.data.id) {
+              projList = [specificProjRes.data];
+              localStorage.setItem('projectId', specificProjRes.data.id.toString());
+              break;
+            }
+          } catch (e) {
+            // Ignore access denied errors for projects not assigned to this client
+          }
+        }
+      }
+
+      setSprints(sprintList);
+      setProjects(projList);
     } catch (err) {
       setError('Failed to fetch data. Please try again later.');
       console.error(err);
@@ -162,7 +192,7 @@ const SprintsManagement = ({ role }) => {
   const fetchSprints = async () => {
     try {
       const response = await api.get('/api/sprints');
-      setSprints(response.data);
+      setSprints(normalizeArray(response.data));
     } catch (err) {
       console.error(err);
     }

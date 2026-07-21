@@ -12,6 +12,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (token && role) {
+      navigate(`/dashboard/${role.toLowerCase()}`, { replace: true });
+    }
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -19,11 +27,23 @@ const Login = () => {
 
     try {
       const response = await api.post('/api/auth/login', { email, password });
-      const { accessToken, role, name } = response.data;
+      const { accessToken, role, name, userId, id, email: resEmail, assignedProjectId, projectId } = response.data;
       
       localStorage.setItem('token', accessToken);
       if (role) {
         localStorage.setItem('role', role);
+      }
+      const uId = userId || id;
+      if (uId) {
+        localStorage.setItem('userId', uId.toString());
+      }
+      if (resEmail || email) {
+        localStorage.setItem('email', (resEmail || email).toString());
+      }
+
+      const clientProjId = assignedProjectId || projectId;
+      if (clientProjId) {
+        localStorage.setItem('projectId', clientProjId.toString());
       }
       
       let userName = name;
