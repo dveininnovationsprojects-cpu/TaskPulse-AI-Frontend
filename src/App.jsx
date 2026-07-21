@@ -16,10 +16,20 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />;
 };
 
+const RootRedirect = () => {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  if (token && role) {
+    return <Navigate to={`/dashboard/${role.toLowerCase()}`} replace />;
+  }
+  return <Navigate to="/login" replace />;
+};
+
 function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         
@@ -43,7 +53,7 @@ function App() {
         } />
         
         {/* Default fallback route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<RootRedirect />} />
       </Routes>
     </Router>
   );

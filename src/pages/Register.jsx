@@ -69,6 +69,10 @@ const Register = () => {
         ...(formData.role === 'CLIENT_VIEWER' && { projectId: parseInt(formData.projectId, 10) })
       };
 
+      if (formData.role === 'CLIENT_VIEWER' && formData.projectId) {
+        localStorage.setItem('registeredProjectId', formData.projectId.toString());
+      }
+
       await api.post('/api/auth/register', payload);
       setSuccess('Registration successful! Waiting for admin approval...');
       setTimeout(() => navigate('/login'), 2000);
