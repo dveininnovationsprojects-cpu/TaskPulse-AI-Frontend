@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// The user hasn't specified the backend URL yet, but typically it's localhost:8080 for Spring Boot
-// Change this based on actual environment or user feedback
-const API_BASE_URL = 'http://localhost:8080';
+// Use relative paths in local development to leverage Vite's proxy configuration (defined in vite.config.js)
+// for routing /api requests to Java backend and /ai requests to Python AI backend.
+const API_BASE_URL = window.location.hostname === 'localhost' ? '' : 'http://localhost:8082';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
