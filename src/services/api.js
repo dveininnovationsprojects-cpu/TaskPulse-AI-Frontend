@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// Using empty string for relative paths so Vite's dev server proxy routes requests and bypasses CORS
-const API_BASE_URL = '';
+// The user hasn't specified the backend URL yet, but typically it's localhost:8080 for Spring Boot
+// Change this based on actual environment or user feedback
+const API_BASE_URL = 'http://localhost:8080';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -11,7 +12,6 @@ const api = axios.create({
   },
 });
 
-// Request interceptor for adding the JWT token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -36,10 +36,10 @@ export const getCurrentUser = () => {
       return null;
     }
   }
-  
+
   const token = localStorage.getItem('token');
   if (!token) return null;
-  
+
   try {
     const decoded = jwtDecode(token);
     const role = localStorage.getItem('role') || decoded.role || '';
@@ -55,12 +55,12 @@ export const getCurrentUser = () => {
 export const refreshCurrentUser = async () => {
   const token = localStorage.getItem('token');
   if (!token) return null;
-  
+
   try {
     const decoded = jwtDecode(token);
     const email = decoded.sub || decoded.email || '';
     if (!email) return null;
-    
+
     // Fetch all users to match email (standard way if there is no custom /me endpoint)
     const res = await api.get('/api/users');
     const matchedUser = res.data.find(u => u.email === email);

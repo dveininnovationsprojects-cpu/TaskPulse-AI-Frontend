@@ -76,12 +76,15 @@ const EmployeesManagement = ({ role }) => {
   };
 
   // Pending users are those who do not have an employee profile yet AND are not ADMIN.
-  const pendingUsers = users.filter(u => u.role !== 'ADMIN' && !employees.some(e => e.userId === u.id));
+  const pendingUsers = users.filter(u => 
+    u.role !== 'ADMIN' && 
+    !employees.some(e => e.userId?.toString() === u.id?.toString() || e.user?.id?.toString() === u.id?.toString())
+  );
   const pendingUsersCount = pendingUsers.length;
   
   // Managers are existing employees who hold the PROJECT_MANAGER role in the system.
   const managers = employees.filter(emp => {
-    const u = users.find(user => user.id === emp.userId);
+    const u = users.find(user => user.id?.toString() === emp.userId?.toString());
     return u && u.role === 'PROJECT_MANAGER';
   });
 
@@ -95,12 +98,13 @@ const EmployeesManagement = ({ role }) => {
   };
 
   const handleOpenModal = (mode, employee = null) => {
+    fetchData(); 
     setModalMode(mode);
     setFormError('');
     if (mode === 'edit' && employee) {
       setCurrentEmployeeId(employee.employeeId);
       setFormData({
-        userId: employee.userId, // Won't be editable in PUT, but good to have in state
+        userId: employee.userId, 
         department: employee.department || '',
         skills: employee.skills || '',
         capacityHours: employee.capacityHours || '',
@@ -428,7 +432,7 @@ const EmployeesManagement = ({ role }) => {
                               }
                             }}
                           >
-                            {user.name} <span style={{ color: '#64748b', fontSize: '0.8rem', marginLeft: '4px' }}>({user.email})</span>
+                            {user.name} <span style={{ color: '#64748b', fontSize: '0.8rem', marginLeft: '4px' }}>({user.email})</span> — <strong style={{ color: '#11b1c6', fontSize: '0.8rem' }}>{user.role}</strong>
                           </div>
                         ))
                       )}
@@ -437,6 +441,26 @@ const EmployeesManagement = ({ role }) => {
                   <small style={{ color: '#89c4d1', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
                     Select a registered user to create their employee profile.
                   </small>
+
+                  {formData.userId && (() => {
+                    const sel = pendingUsers.find(u => u.id.toString() === formData.userId.toString());
+                    if (!sel) return null;
+                    const proj = sel.assignedProject || (sel.projectId ? { id: sel.projectId, projectName: `Project #${sel.projectId}` } : null);
+                    return (
+                      <div style={{ marginTop: '10px', padding: '10px 14px', borderRadius: '12px', background: 'rgba(17, 177, 198, 0.08)', border: '1px solid rgba(17, 177, 198, 0.2)', fontSize: '0.85rem', color: '#0c5965' }}>
+                        <div><strong>Role:</strong> <span style={{ color: '#11b1c6', fontWeight: '600' }}>{sel.role}</span></div>
+                        {proj ? (
+                          <div style={{ marginTop: '4px' }}>
+                            <strong>Requested Project:</strong> <span style={{ color: '#0ea5e9', fontWeight: '600' }}>{proj.projectName} (ID: {proj.id})</span>
+                          </div>
+                        ) : sel.role === 'CLIENT_VIEWER' ? (
+                          <div style={{ marginTop: '4px', color: '#64748b' }}>
+                            <strong>Requested Project:</strong> <span style={{ color: '#ef4444' }}>N/A (Registered before project feature)</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="form-group">
