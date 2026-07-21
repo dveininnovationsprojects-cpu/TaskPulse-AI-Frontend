@@ -25,6 +25,23 @@ api.interceptors.request.use(
   }
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      const isLoginUrl = error.config && error.config.url && error.config.url.includes('/api/auth/login');
+      if (!isLoginUrl) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('name');
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 
 // Helper to get current user details from JWT and cache them
 export const getCurrentUser = () => {
