@@ -3,7 +3,8 @@ import { jwtDecode } from 'jwt-decode';
 
 // Use relative paths in local development to leverage Vite's proxy configuration (defined in vite.config.js)
 // for routing /api requests to Java backend and /ai requests to Python AI backend.
-const API_BASE_URL = window.location.hostname === 'localhost' ? '' : 'http://localhost:8082';
+// Default to http://localhost:8080 for Java Spring Boot backend
+const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'http://localhost:8080';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -28,7 +29,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+    // Only redirect to login on 401 (Unauthorized). Do NOT redirect on 403 (Access Denied).
+    if (error.response && error.response.status === 401) {
       const isLoginUrl = error.config && error.config.url && error.config.url.includes('/api/auth/login');
       if (!isLoginUrl) {
         localStorage.removeItem('token');
