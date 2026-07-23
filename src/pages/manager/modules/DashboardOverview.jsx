@@ -54,17 +54,16 @@ const DashboardOverview = () => {
       setProjectSummary(res.data);
     } catch (err) {
       console.error('Error fetching project summary:', err);
-      // Fallback fallback summary structure
       const foundProject = projects.find(p => p.id === parseInt(projectId, 10));
       setProjectSummary({
         projectName: foundProject?.projectName || 'Project Dashboard',
-        totalHours: 36.5,
-        activeBlockersCount: 2,
+        totalHours: 0,
+        activeBlockersCount: 0,
         tasksByStatus: {
-          TODO: 5,
-          IN_PROGRESS: 3,
-          BLOCKED: 2,
-          DONE: 8
+          TODO: 0,
+          IN_PROGRESS: 0,
+          BLOCKED: 0,
+          DONE: 0
         }
       });
     } finally {

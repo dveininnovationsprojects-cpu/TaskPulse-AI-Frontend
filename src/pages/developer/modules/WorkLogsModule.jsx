@@ -187,7 +187,7 @@ const WorkLogsModule = () => {
                 value={formData.notes}
                 onChange={handleInputChange}
                 required
-                style={{ resize: 'vertical', borderRadius: '12px' }}
+                style={{ resize: 'vertical', borderRadius: '20px' }}
               />
             </div>
 
@@ -208,7 +208,7 @@ const WorkLogsModule = () => {
           {isLoading ? (
             <p style={{ color: '#11b1c6' }}>Loading log history...</p>
           ) : logs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', background: 'rgba(255,255,255,0.3)', borderRadius: '16px', color: '#0c5965', fontStyle: 'italic' }}>
+            <div style={{ textAlign: 'center', padding: '40px', background: 'rgba(255,255,255,0.3)', borderRadius: '20px', color: '#0c5965', fontStyle: 'italic' }}>
               No work logged yet.
             </div>
           ) : (
@@ -216,28 +216,28 @@ const WorkLogsModule = () => {
               {logs.map(log => (
                 <div key={log.id} style={{ 
                   background: 'white', 
-                  padding: '16px', 
-                  borderRadius: '16px', 
-                  border: '1px solid rgba(17,177,198,0.1)', 
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.02)'
+                  padding: '18px 20px', 
+                  borderRadius: '20px', 
+                  border: '1px solid rgba(17,177,198,0.12)', 
+                  boxShadow: '0 4px 15px rgba(12,89,101,0.04)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h4 style={{ margin: 0, color: '#0c5965', fontSize: '0.95rem' }}>{log.task?.taskName}</h4>
-                    <span style={{ fontSize: '0.8rem', color: '#11b1c6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <h4 style={{ margin: 0, color: '#0c5965', fontSize: '0.95rem', fontWeight: 600 }}>{log.task?.taskName}</h4>
+                    <span style={{ fontSize: '0.8rem', color: '#0284c7', background: 'rgba(56, 189, 248, 0.15)', padding: '4px 12px', borderRadius: '20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Clock size={12} /> {log.loggedHours} hrs
                     </span>
                   </div>
                   
-                  <p style={{ margin: '0 0 8px 0', color: '#475569', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                  <p style={{ margin: '0 0 10px 0', color: '#475569', fontSize: '0.85rem', lineHeight: 1.4 }}>
                     {log.description}
                   </p>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#89c4d1', borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#89c4d1', borderTop: '1px solid rgba(17,177,198,0.08)', paddingTop: '8px' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#0c5965' }}>
                       <Calendar size={12} /> {log.logDate}
                     </span>
                     {log.progressPercent !== null && log.progressPercent !== undefined && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#16a34a', background: 'rgba(34, 197, 94, 0.12)', padding: '2px 10px', borderRadius: '12px', fontWeight: 600 }}>
                         <BookOpen size={12} /> Progress: {log.progressPercent}%
                       </span>
                     )}

@@ -320,17 +320,15 @@ const TasksModule = () => {
                       <td style={{ fontWeight: 600, color: '#0c5965' }}>{task.taskName}</td>
                       <td>{task.assignee?.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Unassigned</span>}</td>
                       <td>
-                        <span style={{ 
-                          padding: '4px 10px', 
-                          borderRadius: '12px', 
-                          fontSize: '0.8rem',
-                          fontWeight: 500,
-                          ...getPriorityStyle(task.priority)
-                        }}>
+                        <span className={`priority-badge priority-${task.priority}`}>
                           {task.priority}
                         </span>
                       </td>
-                      <td style={{ fontWeight: 500 }}>{task.status}</td>
+                      <td>
+                        <span className={`status-badge status-${task.status}`}>
+                          {task.status ? task.status.replace('_', ' ') : 'TODO'}
+                        </span>
+                      </td>
                       <td>{task.complexity || '-'}</td>
                       <td>{task.estimatedHours || 0}h / {task.actualHours || 0}h</td>
                       <td>{task.deadline || '-'}</td>
@@ -358,6 +356,7 @@ const TasksModule = () => {
       {showFormModal && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '550px' }}>
+            <div className="modal-bg-glass"></div>
             <div className="modal-header">
               <h3>{modalMode === 'create' ? 'Create New Task' : 'Edit Task'}</h3>
               <button className="modal-close" onClick={() => setShowFormModal(false)}><X size={20} /></button>
@@ -383,10 +382,11 @@ const TasksModule = () => {
                 <textarea
                   name="description"
                   className="form-control"
-                  rows="3"
+                  rows="2"
+                  placeholder="Enter task details..."
                   value={formData.description}
                   onChange={handleInputChange}
-                  style={{ resize: 'vertical', borderRadius: '12px' }}
+                  style={{ resize: 'vertical', borderRadius: '20px' }}
                 />
               </div>
 
@@ -410,7 +410,7 @@ const TasksModule = () => {
                   <button 
                     type="button" 
                     className="btn-pill" 
-                    style={{ margin: 0, height: '56px', background: '#8b5cf6', color: 'white', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }} 
+                    style={{ margin: 0, padding: '10px 18px', borderRadius: '20px', background: '#8b5cf6', color: 'white', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem' }} 
                     onClick={handleAiRecommend}
                     disabled={isRecommending}
                   >
@@ -492,8 +492,8 @@ const TasksModule = () => {
                 />
               </div>
 
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button type="button" className="btn-pill" style={{ background: '#cbd5e1', color: '#334155', boxShadow: 'none' }} onClick={() => setShowFormModal(false)}>Cancel</button>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+                <button type="button" className="btn-secondary-pill" onClick={() => setShowFormModal(false)}>Cancel</button>
                 <button type="submit" className="btn-pill" disabled={isSubmitting}>
                   {isSubmitting ? 'Saving...' : 'Save Task'}
                 </button>
@@ -507,6 +507,7 @@ const TasksModule = () => {
       {showDetailModal && selectedTask && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '600px', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div className="modal-bg-glass"></div>
             <div className="modal-header">
               <h3>Task Detail: {selectedTask.taskName}</h3>
               <button className="modal-close" onClick={() => setShowDetailModal(false)}><X size={20} /></button>

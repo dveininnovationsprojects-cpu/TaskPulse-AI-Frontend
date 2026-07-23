@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, User, X, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 import './DashboardLayout.css';
+import './SprintsManagement.css';
 
 const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, onModuleChange, children }) => {
   const navigate = useNavigate();
