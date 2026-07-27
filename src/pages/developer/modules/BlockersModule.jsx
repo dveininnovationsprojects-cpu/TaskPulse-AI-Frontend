@@ -174,7 +174,7 @@ const BlockersModule = () => {
           </form>
         </div>
 
-        {/* Active Blockers List */}
+        
         <div>
           <h3 style={{ margin: '0 0 20px 0', color: '#0c5965', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <AlertCircle size={18} /> Active Blockers ({blockers.length})

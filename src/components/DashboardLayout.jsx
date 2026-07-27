@@ -279,7 +279,7 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#0c5965', marginBottom: '6px' }}>System Role (6 Roles System)</label>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#0c5965', marginBottom: '6px' }}>System Role </label>
                 <div style={{ display: 'inline-block', padding: '6px 14px', borderRadius: '20px', background: 'rgba(17, 177, 198, 0.12)', border: '1px solid rgba(17, 177, 198, 0.3)', color: '#0c5965', fontWeight: '700', fontSize: '0.85rem', letterSpacing: '0.5px' }}>
                   {userRole}
                 </div>
@@ -289,7 +289,7 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#0c5965', marginBottom: '6px' }}>Old Password</label>
                 <input
                   type={showOldPassword ? 'text' : 'password'}
-                  placeholder="Enter current password..."
+                  placeholder="Enter current password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   style={{ width: '100%', padding: '12px 45px 12px 16px', borderRadius: '12px', border: '1px solid rgba(17, 177, 198, 0.25)', background: 'rgba(255,255,255,0.9)', color: '#0c5965', fontSize: '0.95rem', outline: 'none' }}
@@ -307,7 +307,7 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#0c5965', marginBottom: '6px' }}>New Password (min 8 chars)</label>
                 <input
                   type={showNewPassword ? 'text' : 'password'}
-                  placeholder="Enter new password..."
+                  placeholder="Enter new password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   style={{ width: '100%', padding: '12px 45px 12px 16px', borderRadius: '12px', border: '1px solid rgba(17, 177, 198, 0.25)', background: 'rgba(255,255,255,0.9)', color: '#0c5965', fontSize: '0.95rem', outline: 'none' }}
@@ -325,7 +325,7 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: '600', color: '#0c5965', marginBottom: '6px' }}>Confirm New Password</label>
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Re-enter new password..."
+                  placeholder="Re-enter new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   style={{ width: '100%', padding: '12px 45px 12px 16px', borderRadius: '12px', border: '1px solid rgba(17, 177, 198, 0.25)', background: 'rgba(255,255,255,0.9)', color: '#0c5965', fontSize: '0.95rem', outline: 'none' }}
@@ -397,5 +397,4 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
     </div>
   );
 };
-
 export default DashboardLayout;
