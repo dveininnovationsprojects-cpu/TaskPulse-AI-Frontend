@@ -24,7 +24,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
+    
     try {
       const response = await api.post('/api/auth/login', { email, password });
       const { accessToken, role, name, userId, id, email: resEmail, assignedProjectId, projectId } = response.data;
@@ -50,14 +50,13 @@ const Login = () => {
       if (!userName && accessToken) {
         try {
           const decoded = jwtDecode(accessToken);
-          userName = decoded.name || decoded.sub; // Fallback to email/sub
+          userName = decoded.name || decoded.sub; 
         } catch(e) {}
       }
       if (userName) {
         localStorage.setItem('name', userName);
       }
       
-      // Navigate based on role returned from server. Fallback to developer if undefined.
       const userRole = role ? role.toLowerCase() : 'developer';
       navigate(`/dashboard/${userRole}`);
     } catch (err) {
@@ -86,10 +85,8 @@ const Login = () => {
             </filter>
           </defs>
 
-          {/* Back Wave (Cyan Translucent Ribbon) */}
           <path d="M 280,0 C 410,180 510,300 380,550 C 250,800 330,920 510,1024 L 130, 1024 C 280,900 210,800 80,550 C -20,300 110,150 80,0 Z" fill="rgba(141, 227, 242, 0.4)" />
 
-          {/* Front Wave (White Ribbon) */}
           <path d="M 250,0 C 380,180 480,300 350,550 C 220,800 300,920 480,1024 L 100,1024 C 250,900 180,800 50,550 C -50,300 80,150 50,0 Z" fill="#ffffff" filter="url(#wave-shadow)" />
         </svg>
         <div className="ribbon-container-right">
@@ -114,7 +111,7 @@ const Login = () => {
           </div>
           
           {error && <div className="error-message">{error}</div>}
-          
+
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <input
@@ -127,7 +124,6 @@ const Login = () => {
                 required
               />
             </div>
-            
             <div className="form-group" style={{ position: 'relative' }}>
               <input
                 id="password"

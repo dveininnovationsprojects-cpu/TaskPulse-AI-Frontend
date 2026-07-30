@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// Use relative paths in local development to leverage Vite's proxy configuration (defined in vite.config.js)
-// for routing /api requests to Java backend and /ai requests to Python AI backend.
-// Default to http://localhost:8080 for Java Spring Boot backend
 const API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:8080' : 'http://localhost:8080';
 
 const api = axios.create({
@@ -29,7 +26,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Only redirect to login on 401 (Unauthorized). Do NOT redirect on 403 (Access Denied).
     if (error.response && error.response.status === 401) {
       const isLoginUrl = error.config && error.config.url && error.config.url.includes('/api/auth/login');
       if (!isLoginUrl) {
@@ -44,8 +40,6 @@ api.interceptors.response.use(
   }
 );
 
-
-// Helper to get current user details from JWT and cache them
 export const getCurrentUser = () => {
   const userStr = localStorage.getItem('currentUser');
   if (userStr) {
@@ -70,7 +64,6 @@ export const getCurrentUser = () => {
   }
 };
 
-// Asynchronous helper to fetch and cache user profile details from backend
 export const refreshCurrentUser = async () => {
   const token = localStorage.getItem('token');
   if (!token) return null;
@@ -79,8 +72,6 @@ export const refreshCurrentUser = async () => {
     const decoded = jwtDecode(token);
     const email = decoded.sub || decoded.email || '';
     if (!email) return null;
-
-    // Fetch all users to match email (standard way if there is no custom /me endpoint)
     const res = await api.get('/api/users');
     const matchedUser = res.data.find(u => u.email === email);
     if (matchedUser) {
