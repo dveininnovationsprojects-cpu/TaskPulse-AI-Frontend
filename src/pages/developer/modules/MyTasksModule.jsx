@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api, { getCurrentUser, refreshCurrentUser } from '../../../services/api';
 import { Eye, Clock, AlertTriangle, Check, Plus, X } from 'lucide-react';
 
@@ -247,13 +248,13 @@ const MyTasksModule = () => {
         )}
       </div>
 
-      {/* Task Details Modal */}
-      {selectedTask && (
+      {/* Selected Task Details Popup Modal */}
+      {selectedTask && createPortal(
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-content" style={{ maxWidth: '580px' }}>
             <div className="modal-bg-glass"></div>
             <div className="modal-header">
-              <h3>Task: {selectedTask.taskName}</h3>
+              <h3>Task Detail: {selectedTask.taskName}</h3>
               <button className="modal-close" onClick={() => setSelectedTask(null)}><X size={20} /></button>
             </div>
             
@@ -356,12 +357,13 @@ const MyTasksModule = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Log Work Modal Overlay */}
-      {showWorkLogModal && (
-        <div className="modal-overlay" style={{ zIndex: 200 }}>
+      {showWorkLogModal && createPortal(
+        <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '420px' }}>
             <div className="modal-bg-glass"></div>
             <div className="modal-header">
@@ -428,12 +430,13 @@ const MyTasksModule = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Blocker Report Modal Overlay */}
-      {showBlockerModal && (
-        <div className="modal-overlay" style={{ zIndex: 200 }}>
+      {showBlockerModal && createPortal(
+        <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '420px' }}>
             <div className="modal-bg-glass"></div>
             <div className="modal-header">
@@ -474,7 +477,8 @@ const MyTasksModule = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

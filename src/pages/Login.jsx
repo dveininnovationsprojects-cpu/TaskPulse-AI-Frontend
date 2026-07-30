@@ -56,6 +56,16 @@ const Login = () => {
       if (userName) {
         localStorage.setItem('name', userName);
       }
+
+      const userEmail = resEmail || email;
+      const currentUserObj = {
+        id: uId ? parseInt(uId, 10) : null,
+        email: userEmail,
+        role: role,
+        name: userName || (userEmail ? userEmail.split('@')[0] : 'User'),
+        projectId: clientProjId
+      };
+      localStorage.setItem('currentUser', JSON.stringify(currentUserObj));
       
       // Navigate based on role returned from server. Fallback to developer if undefined.
       const userRole = role ? role.toLowerCase() : 'developer';

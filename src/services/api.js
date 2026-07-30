@@ -48,9 +48,12 @@ export const getCurrentUser = () => {
   const userStr = localStorage.getItem('currentUser');
   if (userStr) {
     try {
-      return JSON.parse(userStr);
+      const user = JSON.parse(userStr);
+      if (user && (user.id || user.id === 0)) {
+        return user;
+      }
     } catch (e) {
-      return null;
+      // ignore invalid json
     }
   }
 
@@ -60,8 +63,16 @@ export const getCurrentUser = () => {
   try {
     const decoded = jwtDecode(token);
     const role = localStorage.getItem('role') || decoded.role || '';
-    const email = decoded.sub || decoded.email || '';
-    return { id: decoded.id || null, email, role, name: decoded.name || email.split('@')[0] };
+    const email = localStorage.getItem('email') || decoded.sub || decoded.email || '';
+    const name = localStorage.getItem('name') || decoded.name || (email ? email.split('@')[0] : '');
+    const storedUserId = localStorage.getItem('userId');
+    const id = storedUserId ? parseInt(storedUserId, 10) : (decoded.id || null);
+
+    const userObj = { id, email, role, name };
+    if (id) {
+      localStorage.setItem('currentUser', JSON.stringify(userObj));
+    }
+    return userObj;
   } catch (err) {
     console.error('Error decoding token', err);
     return null;
@@ -71,18 +82,31 @@ export const getCurrentUser = () => {
 // Asynchronous helper to fetch and cache user profile details from backend
 export const refreshCurrentUser = async () => {
   const token = localStorage.getItem('token');
-  if (!token) return null;
+  const storedUserId = localStorage.getItem('userId');
 
   try {
-    const decoded = jwtDecode(token);
-    const email = decoded.sub || decoded.email || '';
-    if (!email) return null;
-
-    // Fetch all users to match email (standard way if there is no custom /me endpoint)
     const res = await api.get('/api/users');
-    const matchedUser = res.data.find(u => u.email === email);
+    const users = res.data || [];
+
+    let decodedEmail = '';
+    if (token) {
+      try {
+        const decoded = jwtDecode(token);
+        decodedEmail = decoded.sub || decoded.email || '';
+      } catch (e) {}
+    }
+    const storedEmail = localStorage.getItem('email') || decodedEmail;
+
+    const matchedUser = users.find(u => 
+      (storedUserId && u.id && u.id.toString() === storedUserId.toString()) ||
+      (storedEmail && u.email && u.email.toLowerCase() === storedEmail.toLowerCase())
+    );
+
     if (matchedUser) {
       localStorage.setItem('currentUser', JSON.stringify(matchedUser));
+      if (matchedUser.id) {
+        localStorage.setItem('userId', matchedUser.id.toString());
+      }
       return matchedUser;
     }
   } catch (err) {
@@ -94,6 +118,10 @@ export const refreshCurrentUser = async () => {
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('role');
+  localStorage.removeItem('userId');
+  localStorage.removeItem('email');
+  localStorage.removeItem('name');
+  localStorage.removeItem('projectId');
   localStorage.removeItem('currentUser');
 };
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api, { getCurrentUser, refreshCurrentUser } from '../../../services/api';
-import { Clock, Plus, Calendar, BookOpen } from 'lucide-react';
+import { Clock, Plus, Calendar, BookOpen, ChevronDown } from 'lucide-react';
 
 const WorkLogsModule = () => {
   const [logs, setLogs] = useState([]);
@@ -21,6 +21,20 @@ const WorkLogsModule = () => {
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
 
+  // Custom Task Dropdown state & ref
+  const [isTaskOpen, setIsTaskOpen] = useState(false);
+  const taskRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (taskRef.current && !taskRef.current.contains(e.target)) {
+        setIsTaskOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     fetchLogsAndTasks();
   }, []);
@@ -31,7 +45,7 @@ const WorkLogsModule = () => {
     try {
       let user = getCurrentUser();
       if (!user || !user.id) {
-        user = await refreshCurrentUser();
+        user = await refreshCurrentUser().catch(() => null);
       }
       setCurrentUser(user);
 
@@ -59,12 +73,26 @@ const WorkLogsModule = () => {
     e.preventDefault();
     setSubmitError('');
     setSubmitSuccess('');
-    setIsSubmitting(true);
 
+    if (!formData.taskId) {
+      setSubmitError('Please select an active task.');
+      return;
+    }
+    if (!formData.loggedHours || parseFloat(formData.loggedHours) <= 0) {
+      setSubmitError('Please enter valid hours spent.');
+      return;
+    }
+    if (!formData.notes.trim()) {
+      setSubmitError('Please provide work log notes.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      let user = currentUser || getCurrentUser();
       const payload = {
         taskId: parseInt(formData.taskId, 10),
-        userId: currentUser.id,
+        userId: user ? parseInt(user.id, 10) : null,
         loggedHours: parseFloat(formData.loggedHours),
         logDate: formData.logDate,
         notes: formData.notes,
@@ -81,9 +109,13 @@ const WorkLogsModule = () => {
         notes: '',
         progressPercent: ''
       });
+      setIsTaskOpen(false);
+
       // Refresh list
-      const logsRes = await api.get(`/api/worklogs/user/${currentUser.id}`);
-      setLogs(logsRes.data || []);
+      if (user && user.id) {
+        const logsRes = await api.get(`/api/worklogs/user/${user.id}`);
+        setLogs(logsRes.data || []);
+      }
     } catch (err) {
       console.error(err);
       setSubmitError(err.response?.data?.message || 'Failed to submit work log.');
@@ -95,7 +127,7 @@ const WorkLogsModule = () => {
   return (
     <div className="module-container">
       <div className="module-header">
-        <h2 className="module-title">Work Logs</h2>
+        <h2 className="module-title">Work Logs Management</h2>
       </div>
 
       <div className="module-content" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', alignItems: 'start' }}>
@@ -119,20 +151,43 @@ const WorkLogsModule = () => {
               </div>
             )}
 
-            <div className="form-group">
+            {/* Custom Select Task Dropdown */}
+            <div className="form-group" style={{ position: 'relative' }} ref={taskRef}>
               <label style={{ display: 'block', marginBottom: '8px', color: '#0c5965', fontWeight: 500, fontSize: '0.9rem' }}>Select Task *</label>
-              <select
-                name="taskId"
-                className="form-control"
-                value={formData.taskId}
-                onChange={handleInputChange}
-                required
+              <div 
+                className="form-control" 
+                onClick={() => setIsTaskOpen(!isTaskOpen)}
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
               >
-                <option value="" disabled>Choose an active task...</option>
-                {tasks.map(t => (
-                  <option key={t.id} value={t.id}>{t.taskName} ({t.project?.projectName || 'No Project'})</option>
-                ))}
-              </select>
+                <span style={{ color: formData.taskId ? '#0c5965' : '#89c4d1' }}>
+                  {formData.taskId 
+                    ? (tasks.find(t => t.id.toString() === formData.taskId.toString())
+                        ? `${tasks.find(t => t.id.toString() === formData.taskId.toString()).taskName} (${tasks.find(t => t.id.toString() === formData.taskId.toString()).project?.projectName || 'No Project'})`
+                        : 'Choose an active task...')
+                    : 'Choose an active task...'}
+                </span>
+                <ChevronDown size={18} color="#11b1c6" style={{ transform: isTaskOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
+              </div>
+              {isTaskOpen && (
+                <div className="custom-select-options" style={{ position: 'absolute', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(12px)', border: '1px solid rgba(17, 177, 198, 0.25)', borderRadius: '14px', boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)', zIndex: 1000, maxHeight: '160px', overflowY: 'auto', marginTop: '4px', padding: '4px 0' }}>
+                  {tasks.length === 0 ? (
+                    <div style={{ padding: '8px 14px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem' }}>No assigned active tasks</div>
+                  ) : (
+                    tasks.map(t => (
+                      <div
+                        key={t.id}
+                        className="custom-select-option"
+                        onClick={() => { setFormData(prev => ({ ...prev, taskId: t.id.toString() })); setIsTaskOpen(false); }}
+                        style={{ padding: '8px 14px', cursor: 'pointer', color: formData.taskId.toString() === t.id.toString() ? '#11b1c6' : '#0c5965', fontWeight: formData.taskId.toString() === t.id.toString() ? '600' : '500', backgroundColor: formData.taskId.toString() === t.id.toString() ? 'rgba(17, 177, 198, 0.08)' : 'transparent', fontSize: '0.9rem' }}
+                        onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(17, 177, 198, 0.08)'; e.target.style.color = '#11b1c6'; }}
+                        onMouseLeave={(e) => { if (formData.taskId.toString() !== t.id.toString()) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
+                      >
+                        {t.taskName} ({t.project?.projectName || 'No Project'})
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '16px' }}>
