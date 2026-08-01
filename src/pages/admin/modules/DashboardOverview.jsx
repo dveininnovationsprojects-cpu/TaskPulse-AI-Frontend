@@ -57,13 +57,13 @@ const DashboardOverview = () => {
       const foundProject = projects.find(p => p.id === parseInt(projectId, 10));
       setProjectSummary({
         projectName: foundProject?.projectName || 'Project Dashboard',
-        totalHours: 36.5,
-        activeBlockersCount: 2,
+        totalHours: 0,
+        activeBlockersCount: 0,
         tasksByStatus: {
-          TODO: 5,
-          IN_PROGRESS: 3,
-          BLOCKED: 2,
-          DONE: 8
+          TODO: 0,
+          IN_PROGRESS: 0,
+          BLOCKED: 0,
+          DONE: 0
         }
       });
     } finally {
@@ -170,45 +170,6 @@ const DashboardOverview = () => {
                 </div>
               </div>
             )}
-
-            {/* Activities Log */}
-            <div style={{ background: 'rgba(255, 255, 255, 0.5)', padding: '24px', borderRadius: '20px', border: '1px solid rgba(255, 255, 255, 0.8)' }}>
-              <h3 style={{ margin: '0 0 20px 0', color: '#0c5965', fontSize: '1.1rem', fontWeight: 600 }}>Recent Activities Log</h3>
-              
-              {activities.length === 0 ? (
-                <p style={{ color: '#0c5965', fontStyle: 'italic', fontSize: '0.95rem' }}>No recent activities found.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '400px', overflowY: 'auto' }}>
-                  {activities.map(act => (
-                    <div key={act.id} style={{ 
-                      background: 'white', 
-                      padding: '12px 16px', 
-                      borderRadius: '12px', 
-                      border: '1px solid rgba(17,177,198,0.08)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '0.85rem'
-                    }}>
-                      <div>
-                        <span style={{ fontWeight: 600, color: '#0c5965' }}>{act.performedBy}</span>
-                        <span style={{ color: '#64748b' }}> performed </span>
-                        <span style={{ fontWeight: 600, color: '#11b1c6' }}>{act.action}</span>
-                        <span style={{ color: '#64748b' }}> on {act.entityType} #{act.entityId}</span>
-                        {act.newValue && (
-                          <div style={{ color: '#059669', marginTop: '4px', fontSize: '0.8rem' }}>
-                            <strong>New Value:</strong> {act.newValue}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ color: '#89c4d1', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}>
-                        <Calendar size={12} /> {act.timestamp ? act.timestamp.replace('T', ' ').substring(0, 16) : ''}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </>
         )}
       </div>

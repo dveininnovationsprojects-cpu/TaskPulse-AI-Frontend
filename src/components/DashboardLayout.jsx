@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, User, X, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import api from '../services/api';
 import './DashboardLayout.css';
+import './SprintsManagement.css';
 
 const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, onModuleChange, children }) => {
   const navigate = useNavigate();
@@ -75,7 +76,6 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
     setIsUpdatingProfile(true);
 
     try {
-      // 1. If password fields are used, invoke the new /api/users/change-password endpoint
       if (oldPassword || newPassword || confirmPassword) {
         if (!oldPassword) {
           setProfileError('Old password cannot be empty.');

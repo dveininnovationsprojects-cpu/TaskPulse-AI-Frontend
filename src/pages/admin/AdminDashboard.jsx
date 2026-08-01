@@ -4,16 +4,14 @@ import DashboardOverview from './modules/DashboardOverview';
 import EmployeesModule from './modules/EmployeesModule';
 import ProjectsModule from './modules/ProjectsModule';
 import SprintsModule from './modules/SprintsModule';
-import TasksModule from './modules/TasksModule';
-import BlockersModule from './modules/BlockersModule';
+import ActivitiesModule from '../../components/ActivitiesModule';
 
 const adminModules = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'employees', label: 'Employees' },
   { id: 'projects', label: 'Projects' },
   { id: 'sprints', label: 'Sprints' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'blockers', label: 'Blockers' },
+  { id: 'activities', label: 'Activities' },
 ];
 
 const AdminDashboard = () => {
@@ -25,8 +23,7 @@ const AdminDashboard = () => {
       case 'employees': return <EmployeesModule />;
       case 'projects': return <ProjectsModule />;
       case 'sprints': return <SprintsModule />;
-      case 'tasks': return <TasksModule />;
-      case 'blockers': return <BlockersModule />;
+      case 'activities': return <ActivitiesModule />;
       default: return <DashboardOverview />;
     }
   };

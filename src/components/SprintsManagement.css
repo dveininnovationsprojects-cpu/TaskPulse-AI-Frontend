@@ -134,13 +134,15 @@
   right: 0;
   bottom: 0;
   background-color: rgba(12, 89, 101, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
+  padding: 20px;
   animation: fadeIn 0.2s ease-out;
+  overflow-y: auto;
 }
 
 .modal-content {
@@ -150,17 +152,21 @@
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 24px;
   width: 100%;
-  max-width: 500px;
-  padding: 30px;
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), inset 0 0 0 1px rgba(255,255,255,0.5);
   animation: slideUp 0.3s ease-out;
+  overflow: hidden;
 }
 
 .modal-bg-glass {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   overflow: hidden;
@@ -172,13 +178,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
   margin: 0;
   color: #0c5965;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .modal-close {
@@ -197,8 +205,28 @@
   color: #0f172a;
 }
 
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: calc(85vh - 80px);
+  padding-right: 4px;
+}
+
+.modal-form::-webkit-scrollbar {
+  width: 6px;
+}
+.modal-form::-webkit-scrollbar-track {
+  background: rgba(17, 177, 198, 0.05);
+  border-radius: 10px;
+}
+.modal-form::-webkit-scrollbar-thumb {
+  background: rgba(17, 177, 198, 0.25);
+  border-radius: 10px;
+}
+
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   text-align: left;
 }
 
@@ -212,10 +240,10 @@
 
 .form-control {
   width: 100%;
-  padding: 10px 14px;
+  padding: 10px 18px;
   border: 1px solid rgba(17, 177, 198, 0.3);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.95);
   color: #0c5965;
   font-family: inherit;
   font-size: 0.95rem;
@@ -225,15 +253,34 @@
 .form-control:focus {
   outline: none;
   border-color: #11b1c6;
-  box-shadow: 0 0 0 3px rgba(17, 177, 198, 0.1);
+  box-shadow: 0 0 0 3px rgba(17, 177, 198, 0.15);
   background: #ffffff;
+}
+
+.btn-secondary-pill {
+  background: #cbd5e1;
+  color: #334155;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-secondary-pill:hover {
+  background: #94a3b8;
+  color: #0f172a;
 }
 
 .error-message {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
-  padding: 12px;
-  border-radius: 8px;
+  padding: 12px 18px;
+  border-radius: 16px;
   margin-bottom: 20px;
   font-size: 0.9rem;
   border: 1px solid rgba(239, 68, 68, 0.2);
@@ -269,7 +316,7 @@
   border: 1px solid rgba(17, 177, 198, 0.2);
   color: #0c5965;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -305,11 +352,11 @@
   color: #64748b;
 }
 
-/* Status Badges for Sprints */
+/* Status Badges for Sprints, Tasks & Blockers */
 .status-badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 4px 14px;
+  border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -318,6 +365,23 @@
 .status-ACTIVE { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
 .status-COMPLETED { background: rgba(168, 85, 247, 0.15); color: #9333ea; }
 .status-CLOSED { background: rgba(100, 116, 139, 0.15); color: #475569; }
+
+.status-TODO { background: rgba(100, 116, 139, 0.15); color: #475569; }
+.status-IN_PROGRESS { background: rgba(56, 189, 248, 0.18); color: #0284c7; }
+.status-BLOCKED { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+.status-DONE { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+.status-RESOLVED { background: rgba(34, 197, 94, 0.15); color: #16a34a; }
+
+.priority-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.priority-HIGH { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+.priority-MEDIUM { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+.priority-LOW { background: rgba(59, 130, 246, 0.15); color: #2563eb; }
 
 /* Custom Date Picker Styling */
 input[type="date"]::-webkit-calendar-picker-indicator {

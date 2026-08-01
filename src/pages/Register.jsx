@@ -290,7 +290,6 @@ const Register = () => {
                )}
              </div>
 
-             {/* Project Selection Dropdown for Client Viewers */}
              {formData.role === 'CLIENT_VIEWER' && (
                <div className="form-group" style={{ marginBottom: '15px', position: 'relative' }} ref={projectDropdownRef}>
                  <div 
@@ -391,7 +390,7 @@ const Register = () => {
                  )}
                </div>
              )}
-            
+        
             <button type="submit" className="btn-pill" disabled={isLoading}>
               {isLoading ? 'PLEASE WAIT...' : 'JOIN NOW!'}
             </button>
@@ -403,7 +402,6 @@ const Register = () => {
         </div>
       </main>
     </div>
-    
   );
 };
 export default Register;

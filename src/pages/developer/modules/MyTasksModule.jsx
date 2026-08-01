@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api, { getCurrentUser, refreshCurrentUser } from '../../../services/api';
 import { Eye, Clock, AlertTriangle, Check, Plus, X } from 'lucide-react';
 
@@ -139,6 +140,7 @@ const MyTasksModule = () => {
       };
 
       await api.post('/api/blockers', payload);
+      await api.patch(`/api/tasks/${selectedTask.id}/status?status=BLOCKED`).catch(() => {});
       setShowBlockerModal(false);
       setBlockerForm({ reason: '', expectedResolutionDate: '' });
       // Refresh
@@ -201,12 +203,7 @@ const MyTasksModule = () => {
                       <td style={{ fontWeight: 600, color: '#0c5965' }}>{task.taskName}</td>
                       <td>{task.project?.projectName || 'No Project'}</td>
                       <td>
-                        <span style={{ 
-                          padding: '4px 10px', 
-                          borderRadius: '12px', 
-                          fontSize: '0.8rem',
-                          ...getPriorityStyle(task.priority)
-                        }}>
+                        <span className={`priority-badge priority-${task.priority}`}>
                           {task.priority}
                         </span>
                       </td>
@@ -216,12 +213,12 @@ const MyTasksModule = () => {
                           value={task.status}
                           onChange={(e) => handleStatusChange(task.id, e.target.value)}
                           style={{
-                            padding: '4px 8px',
-                            borderRadius: '8px',
+                            padding: '6px 14px',
+                            borderRadius: '20px',
                             border: '1px solid rgba(17, 177, 198, 0.3)',
                             background: 'white',
                             color: '#0c5965',
-                            fontWeight: '500',
+                            fontWeight: '600',
                             fontSize: '0.85rem'
                           }}
                         >
@@ -251,12 +248,13 @@ const MyTasksModule = () => {
         )}
       </div>
 
-      {/* Task Details Modal */}
-      {selectedTask && (
+      {/* Selected Task Details Popup Modal */}
+      {selectedTask && createPortal(
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-content" style={{ maxWidth: '580px' }}>
+            <div className="modal-bg-glass"></div>
             <div className="modal-header">
-              <h3>Task: {selectedTask.taskName}</h3>
+              <h3>Task Detail: {selectedTask.taskName}</h3>
               <button className="modal-close" onClick={() => setSelectedTask(null)}><X size={20} /></button>
             </div>
             
@@ -359,13 +357,15 @@ const MyTasksModule = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Log Work Modal Overlay */}
-      {showWorkLogModal && (
-        <div className="modal-overlay" style={{ zIndex: 200 }}>
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
+      {showWorkLogModal && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '420px' }}>
+            <div className="modal-bg-glass"></div>
             <div className="modal-header">
               <h3>Log Work</h3>
               <button className="modal-close" onClick={() => setShowWorkLogModal(false)}><X size={20} /></button>
@@ -418,25 +418,27 @@ const MyTasksModule = () => {
                   placeholder="Describe your progress..."
                   value={workLogForm.notes}
                   onChange={(e) => setWorkLogForm(prev => ({ ...prev, notes: e.target.value }))}
-                  style={{ borderRadius: '12px', resize: 'vertical' }}
+                  style={{ borderRadius: '20px', resize: 'vertical' }}
                 />
               </div>
 
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button type="button" className="btn-pill" style={{ background: '#cbd5e1', color: '#334155', boxShadow: 'none' }} onClick={() => setShowWorkLogModal(false)}>Cancel</button>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+                <button type="button" className="btn-secondary-pill" onClick={() => setShowWorkLogModal(false)}>Cancel</button>
                 <button type="submit" className="btn-pill" disabled={isSubmitting}>
                   {isSubmitting ? 'Logging...' : 'Submit'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Blocker Report Modal Overlay */}
-      {showBlockerModal && (
-        <div className="modal-overlay" style={{ zIndex: 200 }}>
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
+      {showBlockerModal && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '420px' }}>
+            <div className="modal-bg-glass"></div>
             <div className="modal-header">
               <h3>Report Blocker</h3>
               <button className="modal-close" onClick={() => setShowBlockerModal(false)}><X size={20} /></button>
@@ -453,7 +455,7 @@ const MyTasksModule = () => {
                   placeholder="Detail the blocker (e.g. pending DB schema changes, API integration blocked, design review pending)..."
                   value={blockerForm.reason}
                   onChange={(e) => setBlockerForm(prev => ({ ...prev, reason: e.target.value }))}
-                  style={{ borderRadius: '12px', resize: 'vertical' }}
+                  style={{ borderRadius: '20px', resize: 'vertical' }}
                 />
               </div>
 
@@ -467,15 +469,16 @@ const MyTasksModule = () => {
                 />
               </div>
 
-              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button type="button" className="btn-pill" style={{ background: '#cbd5e1', color: '#334155', boxShadow: 'none' }} onClick={() => setShowBlockerModal(false)}>Cancel</button>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+                <button type="button" className="btn-secondary-pill" onClick={() => setShowBlockerModal(false)}>Cancel</button>
                 <button type="submit" className="btn-pill" style={{ background: '#ef4444', color: 'white', boxShadow: 'none' }} disabled={isSubmitting}>
                   {isSubmitting ? 'Reporting...' : 'Report Blocker'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
