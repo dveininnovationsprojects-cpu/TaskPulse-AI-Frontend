@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api, { getCurrentUser, refreshCurrentUser } from '../../../services/api';
 import { AlertCircle, CheckCircle2, Clock, ListTodo } from 'lucide-react';
 
-const DashboardOverview = () => {
+const DashboardOverview = ({ isAnalystView = false }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [stats, setStats] = useState({
     pendingTasks: 0,
@@ -19,14 +19,53 @@ const DashboardOverview = () => {
       setError('');
       try {
         let user = getCurrentUser();
-        // If user ID is missing (which happens on first load after register/login sometimes if JWT is generic),
-        // refresh details from backend
         if (!user || !user.id) {
           user = await refreshCurrentUser();
         }
         setCurrentUser(user);
 
-        if (user && user.id) {
+        if (isAnalystView) {
+          // Analyst View: Fetch aggregate metrics across all employees
+          const [projectsRes, blockersRes, usersRes] = await Promise.all([
+            api.get('/api/projects').catch(() => ({ data: [] })),
+            api.get('/api/blockers/active').catch(() => ({ data: [] })),
+            api.get('/api/users').catch(() => ({ data: [] }))
+          ]);
+
+          const projects = projectsRes.data || [];
+          const usersList = usersRes.data || [];
+          let allTasks = [];
+          let totalHours = 0;
+
+          if (projects.length > 0) {
+            const tasksPromises = projects.map(p => 
+              api.get(`/api/tasks/project/${p.id}`).catch(() => ({ data: [] }))
+            );
+            const tasksResponses = await Promise.all(tasksPromises);
+            tasksResponses.forEach(res => {
+              allTasks = [...allTasks, ...(res.data || [])];
+            });
+          }
+
+          if (usersList.length > 0) {
+            const logsPromises = usersList.map(u => 
+              api.get(`/api/worklogs/user/${u.id}`).catch(() => ({ data: [] }))
+            );
+            const logsResponses = await Promise.all(logsPromises);
+            logsResponses.forEach(res => {
+              const userLogs = res.data || [];
+              totalHours += userLogs.reduce((sum, log) => sum + (log.loggedHours || 0), 0);
+            });
+          }
+
+          setStats({
+            pendingTasks: allTasks.filter(t => t.status !== 'DONE').length,
+            completedTasks: allTasks.filter(t => t.status === 'DONE').length,
+            hoursLogged: totalHours,
+            activeBlockers: (blockersRes.data || []).length
+          });
+        } else if (user && user.id) {
+          // Developer View: Fetch developer specific metrics
           const [tasksRes, workLogsRes, blockersRes] = await Promise.all([
             api.get(`/api/tasks/assignee/${user.id}`).catch(() => ({ data: [] })),
             api.get(`/api/worklogs/user/${user.id}`).catch(() => ({ data: [] })),
@@ -40,7 +79,6 @@ const DashboardOverview = () => {
           const myLogs = workLogsRes.data || [];
           const totalHours = myLogs.reduce((sum, log) => sum + (log.loggedHours || 0), 0);
           
-          // Filter active blockers on tasks assigned to me
           const allActiveBlockers = blockersRes.data || [];
           const myBlockedTasksCount = myTasks.filter(t => t.status === 'BLOCKED').length;
 
@@ -53,14 +91,14 @@ const DashboardOverview = () => {
         }
       } catch (err) {
         console.error('Error fetching dashboard overview data:', err);
-        setError('Could not load some dashboard metrics. Using offline mode.');
+        setError('Could not load some dashboard metrics.');
       } finally {
         setIsLoading(false);
       }
     };
 
     initializeUserAndFetchStats();
-  }, []);
+  }, [isAnalystView]);
 
   return (
     <div className="module-container">
