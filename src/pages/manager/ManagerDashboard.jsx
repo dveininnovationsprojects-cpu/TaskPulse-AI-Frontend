@@ -3,15 +3,15 @@ import DashboardLayout from '../../components/DashboardLayout';
 import DashboardOverview from './modules/DashboardOverview';
 import EmployeesModule from './modules/EmployeesModule';
 import ProjectsModule from './modules/ProjectsModule';
-import TasksModule from './modules/TasksModule';
-import BlockersModule from './modules/BlockersModule';
+import SprintsModule from './modules/SprintsModule';
+import ActivitiesModule from '../../components/ActivitiesModule';
 
 const managerModules = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'employees', label: 'Employees' },
   { id: 'projects', label: 'Projects' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'blockers', label: 'Blockers' },
+  { id: 'sprints', label: 'Sprints' },
+  { id: 'activities', label: 'Activities' },
 ];
 
 const ManagerDashboard = () => {
@@ -22,8 +22,8 @@ const ManagerDashboard = () => {
       case 'dashboard': return <DashboardOverview />;
       case 'employees': return <EmployeesModule />;
       case 'projects': return <ProjectsModule />;
-      case 'tasks': return <TasksModule />;
-      case 'blockers': return <BlockersModule />;
+      case 'sprints': return <SprintsModule />;
+      case 'activities': return <ActivitiesModule />;
       default: return <DashboardOverview />;
     }
   };

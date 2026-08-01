@@ -8,7 +8,8 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    role: 'DEVELOPER'
+    role: 'DEVELOPER',
+    projectId: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -16,6 +17,10 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  
+  const [projects, setProjects] = useState([]);
+  const [isProjectOpen, setIsProjectOpen] = useState(false);
+  const projectDropdownRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,10 +28,21 @@ const Register = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
       }
+      if (projectDropdownRef.current && !projectDropdownRef.current.contains(event.target)) {
+        setIsProjectOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (formData.role === 'CLIENT_VIEWER') {
+      api.get('/api/public/projects')
+        .then(res => setProjects(res.data || []))
+        .catch(err => console.error("Could not fetch public projects for client registration:", err));
+    }
+  }, [formData.role]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -38,9 +54,27 @@ const Register = () => {
     setError('');
     setSuccess('');
 
+    if (formData.role === 'CLIENT_VIEWER' && !formData.projectId) {
+      setError('Please select a project to associate with your Client Viewer account.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await api.post('/api/auth/register', formData);
-      setSuccess('Registration successful! Redirecting...');
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        ...(formData.role === 'CLIENT_VIEWER' && { projectId: parseInt(formData.projectId, 10) })
+      };
+
+      if (formData.role === 'CLIENT_VIEWER' && formData.projectId) {
+        localStorage.setItem('registeredProjectId', formData.projectId.toString());
+      }
+
+      await api.post('/api/auth/register', payload);
+      setSuccess('Registration successful! Waiting for admin approval...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       setError(
@@ -73,7 +107,7 @@ const Register = () => {
         <svg className="background-svg" viewBox="0 0 1440 1024" preserveAspectRatio="none">
           <defs>
             <filter id="wave-shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="10" dy="10" stdDeviation="20" flood-color="#11b1c6" flood-opacity="0.12" />
+              <feDropShadow dx="10" dy="10" stdDeviation="20" floodColor="#11b1c6" floodOpacity="0.12" />
             </filter>
           </defs>
 
@@ -199,7 +233,7 @@ const Register = () => {
                    <path d='M0 0h24v24H0z' fill='none'/>
                  </svg>
                </div>
-               
+
                {isOpen && (
                  <div 
                    className="custom-select-options"
@@ -215,7 +249,7 @@ const Register = () => {
                      boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)',
                      zIndex: 100,
                      overflowY: 'auto',
-                     maxHeight: '115px', // Reduced height to shrink scrollbar thumb vertically
+                     maxHeight: '115px',
                      marginTop: '4px',
                      padding: '4px 0'
                    }}
@@ -229,14 +263,14 @@ const Register = () => {
                          setIsOpen(false);
                        }}
                        style={{
-                         padding: '8px 20px', // More compact padding
+                         padding: '8px 20px',
                          cursor: 'pointer',
                          color: formData.role === r.value ? '#34c3d3' : '#11b1c6',
                          fontWeight: formData.role === r.value ? '600' : '500',
                          backgroundColor: formData.role === r.value ? 'rgba(52, 195, 211, 0.08)' : 'transparent',
                          transition: 'all 0.15s ease',
                          fontFamily: 'inherit',
-                         fontSize: '0.85rem' // Smaller font size for a clean look
+                         fontSize: '0.85rem'
                        }}
                        onMouseEnter={(e) => {
                          e.target.style.backgroundColor = 'rgba(52, 195, 211, 0.08)';
@@ -255,7 +289,108 @@ const Register = () => {
                  </div>
                )}
              </div>
-            
+
+             {formData.role === 'CLIENT_VIEWER' && (
+               <div className="form-group" style={{ marginBottom: '15px', position: 'relative' }} ref={projectDropdownRef}>
+                 <div 
+                   className="form-control" 
+                   onClick={() => setIsProjectOpen(!isProjectOpen)}
+                   style={{ 
+                     display: 'flex', 
+                     justifyContent: 'space-between', 
+                     alignItems: 'center', 
+                     cursor: 'pointer',
+                     height: '56px',
+                     padding: '15px 24px',
+                     lineHeight: '1.2'
+                   }}
+                 >
+                   <span style={{ color: formData.projectId ? '#0c5965' : '#89c4d1', fontWeight: formData.projectId ? '500' : '400' }}>
+                     {formData.projectId 
+                       ? (projects.find(p => p.id.toString() === formData.projectId.toString())?.projectName 
+                          ? `${projects.find(p => p.id.toString() === formData.projectId.toString())?.projectName} (ID: ${formData.projectId})`
+                          : `Assigned Project ID: ${formData.projectId}`)
+                       : 'Select Assigned Project...'}
+                   </span>
+                   <svg 
+                     fill='#11b1c6' 
+                     height='24' 
+                     viewBox='0 0 24 24' 
+                     width='24' 
+                     xmlns='http://www.w3.org/2000/svg'
+                     style={{ 
+                       transform: isProjectOpen ? 'rotate(180deg)' : 'rotate(0deg)', 
+                       transition: 'transform 0.25s ease' 
+                     }}
+                   >
+                     <path d='M7 10l5 5 5-5z'/>
+                     <path d='M0 0h24v24H0z' fill='none'/>
+                   </svg>
+                 </div>
+                 
+                 {isProjectOpen && (
+                   <div 
+                     className="custom-select-options"
+                     style={{
+                       position: 'absolute',
+                       top: '100%',
+                       left: 0,
+                       right: 0,
+                       backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                       backdropFilter: 'blur(12px)',
+                       border: '1px solid rgba(17, 177, 198, 0.2)',
+                       borderRadius: '20px',
+                       boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)',
+                       zIndex: 100,
+                       overflowY: 'auto',
+                       maxHeight: '150px',
+                       marginTop: '4px',
+                       padding: '4px 0'
+                     }}
+                   >
+                     {projects.length === 0 ? (
+                       <div style={{ padding: '12px 20px', color: '#64748b', fontSize: '0.85rem', textAlign: 'center' }}>
+                         Loading Projects...
+                       </div>
+                     ) : (
+                       projects.map(p => (
+                         <div
+                           key={p.id}
+                           className="custom-select-option"
+                           onClick={() => {
+                             setFormData({ ...formData, projectId: p.id.toString() });
+                             setIsProjectOpen(false);
+                           }}
+                           style={{
+                             padding: '10px 20px',
+                             cursor: 'pointer',
+                             color: formData.projectId === p.id.toString() ? '#34c3d3' : '#11b1c6',
+                             fontWeight: formData.projectId === p.id.toString() ? '600' : '500',
+                             backgroundColor: formData.projectId === p.id.toString() ? 'rgba(52, 195, 211, 0.08)' : 'transparent',
+                             transition: 'all 0.15s ease',
+                             fontFamily: 'inherit',
+                             fontSize: '0.85rem'
+                           }}
+                           onMouseEnter={(e) => {
+                             e.target.style.backgroundColor = 'rgba(52, 195, 211, 0.08)';
+                             e.target.style.color = '#34c3d3';
+                           }}
+                           onMouseLeave={(e) => {
+                             if (formData.projectId !== p.id.toString()) {
+                               e.target.style.backgroundColor = 'transparent';
+                               e.target.style.color = '#11b1c6';
+                             }
+                           }}
+                         >
+                           {p.projectName} (ID: {p.id})
+                         </div>
+                       ))
+                     )}
+                   </div>
+                 )}
+               </div>
+             )}
+        
             <button type="submit" className="btn-pill" disabled={isLoading}>
               {isLoading ? 'PLEASE WAIT...' : 'JOIN NOW!'}
             </button>
@@ -269,5 +404,4 @@ const Register = () => {
     </div>
   );
 };
-
 export default Register;

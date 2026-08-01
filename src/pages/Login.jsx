@@ -12,21 +12,61 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (token && role) {
+      navigate(`/dashboard/${role.toLowerCase()}`, { replace: true });
+    }
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-
+    
     try {
       const response = await api.post('/api/auth/login', { email, password });
-      const { accessToken, role } = response.data;
+      const { accessToken, role, name, userId, id, email: resEmail, assignedProjectId, projectId } = response.data;
       
       localStorage.setItem('token', accessToken);
       if (role) {
         localStorage.setItem('role', role);
       }
+      const uId = userId || id;
+      if (uId) {
+        localStorage.setItem('userId', uId.toString());
+      }
+      if (resEmail || email) {
+        localStorage.setItem('email', (resEmail || email).toString());
+      }
+
+      const clientProjId = assignedProjectId || projectId;
+      if (clientProjId) {
+        localStorage.setItem('projectId', clientProjId.toString());
+      }
       
-      // Navigate based on role returned from server. Fallback to developer if undefined.
+      let userName = name;
+      if (!userName && accessToken) {
+        try {
+          const decoded = jwtDecode(accessToken);
+          userName = decoded.name || decoded.sub; 
+        } catch(e) {}
+      }
+      if (userName) {
+        localStorage.setItem('name', userName);
+      }
+
+      const userEmail = resEmail || email;
+      const currentUserObj = {
+        id: uId ? parseInt(uId, 10) : null,
+        email: userEmail,
+        role: role,
+        name: userName || (userEmail ? userEmail.split('@')[0] : 'User'),
+        projectId: clientProjId
+      };
+      localStorage.setItem('currentUser', JSON.stringify(currentUserObj));
+      
       const userRole = role ? role.toLowerCase() : 'developer';
       navigate(`/dashboard/${userRole}`);
     } catch (err) {
@@ -51,14 +91,12 @@ const Login = () => {
         <svg className="background-svg" viewBox="0 0 1440 1024" preserveAspectRatio="none">
           <defs>
             <filter id="wave-shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="10" dy="10" stdDeviation="20" flood-color="#11b1c6" flood-opacity="0.12" />
+              <feDropShadow dx="10" dy="10" stdDeviation="20" floodColor="#11b1c6" floodOpacity="0.12" />
             </filter>
           </defs>
 
-          {/* Back Wave (Cyan Translucent Ribbon) */}
           <path d="M 280,0 C 410,180 510,300 380,550 C 250,800 330,920 510,1024 L 130, 1024 C 280,900 210,800 80,550 C -20,300 110,150 80,0 Z" fill="rgba(141, 227, 242, 0.4)" />
 
-          {/* Front Wave (White Ribbon) */}
           <path d="M 250,0 C 380,180 480,300 350,550 C 220,800 300,920 480,1024 L 100,1024 C 250,900 180,800 50,550 C -50,300 80,150 50,0 Z" fill="#ffffff" filter="url(#wave-shadow)" />
         </svg>
         <div className="ribbon-container-right">
@@ -83,7 +121,7 @@ const Login = () => {
           </div>
           
           {error && <div className="error-message">{error}</div>}
-          
+
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <input
@@ -96,7 +134,6 @@ const Login = () => {
                 required
               />
             </div>
-            
             <div className="form-group" style={{ position: 'relative' }}>
               <input
                 id="password"

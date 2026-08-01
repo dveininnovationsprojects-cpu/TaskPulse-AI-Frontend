@@ -81,7 +81,6 @@
 
 .dashboard-content {
   position: relative;
-  z-index: 10;
   flex: 1;
   padding: 40px 5%;
   display: flex;
