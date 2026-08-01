@@ -3,11 +3,13 @@ import DashboardLayout from '../../components/DashboardLayout';
 import DashboardOverview from './modules/DashboardOverview';
 import ProjectsOverviewModule from './modules/ProjectsOverviewModule';
 import SprintsModule from './modules/SprintsModule';
+import WorkLogsModule from './modules/WorkLogsModule';
 
 const clientModules = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'projects', label: 'Projects Overview' },
   { id: 'sprints', label: 'Sprints' },
+  { id: 'worklogs', label: 'Work Logs' },
 ];
 
 const ClientDashboard = () => {
@@ -18,6 +20,7 @@ const ClientDashboard = () => {
       case 'dashboard': return <DashboardOverview />;
       case 'projects': return <ProjectsOverviewModule />;
       case 'sprints': return <SprintsModule />;
+      case 'worklogs': return <WorkLogsModule />;
       default: return <DashboardOverview />;
     }
   };

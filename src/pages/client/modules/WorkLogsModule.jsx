@@ -2,7 +2,7 @@ import React from 'react';
 import WorkLogsManagement from '../../../components/WorkLogsManagement';
 
 const WorkLogsModule = () => {
-  return <WorkLogsManagement role="DEVELOPER" />;
+  return <WorkLogsManagement role="CLIENT_VIEWER" />;
 };
 
 export default WorkLogsModule;

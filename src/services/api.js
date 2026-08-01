@@ -1,8 +1,7 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// Use relative paths in local development to leverage Vite's proxy configuration (defined in vite.config.js)
-// for routing /api requests to Java backend and /ai requests to Python AI backend.
+// Relative path leverages Vite Proxy in dev mode
 const API_BASE_URL = window.location.hostname === 'localhost' ? '' : 'http://localhost:8082';
 
 const api = axios.create({
@@ -12,6 +11,7 @@ const api = axios.create({
   },
 });
 
+// Request Interceptor: Attach JWT Token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -20,21 +20,17 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
+// Response Interceptor: Handle Unauthorized Expiry
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       const isLoginUrl = error.config && error.config.url && error.config.url.includes('/api/auth/login');
       if (!isLoginUrl) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('currentUser');
-        localStorage.removeItem('name');
+        logout();
         window.location.href = '/login';
       }
     }
@@ -42,19 +38,13 @@ api.interceptors.response.use(
   }
 );
 
-
-// Helper to get current user details from JWT and cache them
 export const getCurrentUser = () => {
   const userStr = localStorage.getItem('currentUser');
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      if (user && (user.id || user.id === 0)) {
-        return user;
-      }
-    } catch (e) {
-      // ignore invalid json
-    }
+      if (user && (user.id || user.id === 0)) return user;
+    } catch (e) { }
   }
 
   const token = localStorage.getItem('token');
@@ -79,7 +69,6 @@ export const getCurrentUser = () => {
   }
 };
 
-// Asynchronous helper to fetch and cache user profile details from backend
 export const refreshCurrentUser = async () => {
   const token = localStorage.getItem('token');
   const storedUserId = localStorage.getItem('userId');
@@ -93,11 +82,11 @@ export const refreshCurrentUser = async () => {
       try {
         const decoded = jwtDecode(token);
         decodedEmail = decoded.sub || decoded.email || '';
-      } catch (e) {}
+      } catch (e) { }
     }
     const storedEmail = localStorage.getItem('email') || decodedEmail;
 
-    const matchedUser = users.find(u => 
+    const matchedUser = users.find(u =>
       (storedUserId && u.id && u.id.toString() === storedUserId.toString()) ||
       (storedEmail && u.email && u.email.toLowerCase() === storedEmail.toLowerCase())
     );

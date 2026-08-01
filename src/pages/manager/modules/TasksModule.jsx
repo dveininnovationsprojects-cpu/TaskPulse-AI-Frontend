@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
-import { Plus, Edit2, Trash2, X, Eye, ChevronDown } from 'lucide-react';
+import { predictTaskDelay, recommendEmployee } from '../../../services/aiService';
+import { Plus, Edit2, Trash2, X, Eye, ChevronDown, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 const TasksModule = () => {
   const [projects, setProjects] = useState([]);
@@ -12,6 +13,11 @@ const TasksModule = () => {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // AI Suggestions & Delay Risks
+  const [aiRecommendationBadge, setAiRecommendationBadge] = useState('');
+  const [isAiSuggesting, setIsAiSuggesting] = useState(false);
+  const [taskDelayRisks, setTaskDelayRisks] = useState({});
 
   // Modals
   const [showFormModal, setShowFormModal] = useState(false);
@@ -98,12 +104,12 @@ const TasksModule = () => {
       });
       setUsers(assignableUsers);
 
-      if (projectsData.length > 0) {
-        setSelectedProjectId(projectsData[0].id);
+      if (projectsData.length > 0 && !selectedProjectId) {
+        setSelectedProjectId(projectsData[0].id.toString());
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch projects metadata.');
+      setError('Could not load metadata.');
     }
   };
 
@@ -112,27 +118,97 @@ const TasksModule = () => {
     setError('');
     try {
       const res = await api.get(`/api/tasks/project/${projectId}`);
-      setTasks(res.data || []);
+      const taskList = res.data || [];
+      setTasks(taskList);
+
+      // Fetch AI Delay Risk prediction for each task inline
+      fetchAiDelayRisks(taskList);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch tasks for this project.');
+      setError('Failed to fetch tasks for the selected project.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchAiDelayRisks = async (taskList) => {
+    const riskMap = {};
+    for (const task of taskList) {
+      try {
+        const res = await predictTaskDelay({
+          story_points: task.storyPoints || (task.estimatedHours ? task.estimatedHours / 2 : 5),
+          priority: task.priority || 'MEDIUM',
+          developer_experience_years: 3.0,
+          developer_active_tasks: 3,
+          sprint_remaining_days: 5,
+          historical_delay_rate: 0.2,
+          task_id: task.id,
+          estimated_hours: task.estimatedHours || 8,
+          hours_logged: task.actualHours || 0,
+          blocker_count: 0
+        });
+        riskMap[task.id] = res.risk_level || 'LOW';
+      } catch (e) {
+        riskMap[task.id] = 'LOW';
+      }
+    }
+    setTaskDelayRisks(riskMap);
+  };
+
+  // Trigger inline AI Employee Suggestion for Task Assignee
+  const handleAiSuggestAssignee = async () => {
+    setIsAiSuggesting(true);
+    setAiRecommendationBadge('');
+    try {
+      const candidateList = users.map(u => ({
+        id: u.id,
+        name: u.name,
+        skills: [u.name, formData.complexity || 'Medium', formData.taskName || 'Feature Task'],
+        workload_score: 45.0,
+        active_tasks: 2,
+        employee_id: u.id.toString(),
+        active_task_hours: 20.0,
+        available_capacity_hours: 40.0,
+        past_performance_score: 0.90
+      }));
+
+      const res = await recommendEmployee({
+        task_title: formData.taskName || 'Feature Task',
+        required_skills: [formData.taskName || 'Feature', formData.complexity || 'Medium'],
+        story_points: formData.estimatedHours ? parseFloat(formData.estimatedHours) / 2 : 3.0,
+        priority: formData.priority || 'HIGH',
+        candidates: candidateList,
+        task_id: selectedTaskId ? selectedTaskId.toString() : '1'
+      });
+
+      const topEmp = res.recommended_employee || (res.rankings && res.rankings[0]);
+      if (topEmp) {
+        const topEmpId = topEmp.id || topEmp.employee_id;
+        setFormData(prev => ({ ...prev, assigneeId: String(topEmpId) }));
+        const matchScore = topEmp.match_score || (topEmp.recommendation_score ? topEmp.recommendation_score * 100 : 92);
+        setAiRecommendationBadge(`⭐ AI Suggested: ${topEmp.name} (Match Score: ${matchScore.toFixed(0)}%)`);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsAiSuggesting(false);
     }
   };
 
   const handleOpenFormModal = (mode, task = null) => {
     setModalMode(mode);
     setSubmitError('');
+    setAiRecommendationBadge('');
     setOpenDropdown(null);
+
     if (mode === 'edit' && task) {
       setSelectedTaskId(task.id);
       setFormData({
         taskName: task.taskName || '',
         description: task.description || '',
-        projectId: task.project?.id || selectedProjectId,
-        sprintId: task.sprint?.id || '',
-        assigneeId: task.assignee?.id || '',
+        projectId: task.project ? task.project.id.toString() : selectedProjectId,
+        sprintId: task.sprint ? task.sprint.id.toString() : '',
+        assigneeId: task.assignee ? task.assignee.id.toString() : '',
         status: task.status || 'TODO',
         priority: task.priority || 'MEDIUM',
         estimatedHours: task.estimatedHours || '',
@@ -157,23 +233,57 @@ const TasksModule = () => {
     setShowFormModal(true);
   };
 
-  const handleInputChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const fetchTaskDetails = async (task) => {
+    setSelectedTask(task);
+    setShowDetailModal(true);
+    setIsDetailLoading(true);
+    try {
+      const [wRes, bRes] = await Promise.all([
+        api.get(`/api/worklogs/task/${task.id}`).catch(() => ({ data: [] })),
+        api.get(`/api/blockers/task/${task.id}`).catch(() => ({ data: [] }))
+      ]);
+      setTaskWorkLogs(wRes.data || []);
+      setTaskBlockers(bRes.data || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsDetailLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
-    setIsSubmitting(true);
 
+    if (!formData.taskName.trim()) {
+      setSubmitError('Task Name is required.');
+      return;
+    }
+    if (!formData.projectId) {
+      setSubmitError('Project is required.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      const projIdNum = parseInt(formData.projectId, 10);
+      const sprintIdNum = formData.sprintId ? parseInt(formData.sprintId, 10) : null;
+      const assigneeIdNum = formData.assigneeId ? parseInt(formData.assigneeId, 10) : null;
+
       const payload = {
-        ...formData,
-        projectId: parseInt(formData.projectId, 10),
-        sprintId: formData.sprintId ? parseInt(formData.sprintId, 10) : null,
-        assigneeId: formData.assigneeId ? parseInt(formData.assigneeId, 10) : null,
-        estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : null,
-        deadline: formData.deadline || null
+        taskName: formData.taskName,
+        description: formData.description,
+        projectId: projIdNum,
+        sprintId: sprintIdNum,
+        assigneeId: assigneeIdNum,
+        project: { id: projIdNum },
+        sprint: sprintIdNum ? { id: sprintIdNum } : null,
+        assignee: assigneeIdNum ? { id: assigneeIdNum } : null,
+        status: formData.status || 'TODO',
+        priority: formData.priority || 'MEDIUM',
+        estimatedHours: formData.estimatedHours ? parseFloat(formData.estimatedHours) : 0,
+        complexity: formData.complexity || 'Medium',
+        deadline: formData.deadline ? formData.deadline : null
       };
 
       if (modalMode === 'create') {
@@ -181,6 +291,7 @@ const TasksModule = () => {
       } else {
         await api.put(`/api/tasks/${selectedTaskId}`, payload);
       }
+
       setShowFormModal(false);
       fetchTasks(selectedProjectId);
     } catch (err) {
@@ -191,66 +302,44 @@ const TasksModule = () => {
     }
   };
 
-  const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState(null);
-
-  const handleDelete = (id) => {
-    setConfirmDeleteTaskId(id);
-  };
-
-  const executeDeleteTask = async () => {
-    if (!confirmDeleteTaskId) return;
-    try {
-      await api.delete(`/api/tasks/${confirmDeleteTaskId}`);
-      setConfirmDeleteTaskId(null);
-      fetchTasks(selectedProjectId);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to delete task.');
-      setConfirmDeleteTaskId(null);
-    }
-  };
-
-  const fetchTaskDetails = async (task) => {
-    setSelectedTask(task);
-    setShowDetailModal(true);
-    setIsDetailLoading(true);
-    try {
-      const [logsRes, blockersRes] = await Promise.all([
-        api.get(`/api/worklogs/task/${task.id}`).catch(() => ({ data: [] })),
-        api.get(`/api/blockers/task/${task.id}`).catch(() => ({ data: [] }))
-      ]);
-      setTaskWorkLogs(logsRes.data || []);
-      setTaskBlockers(blockersRes.data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsDetailLoading(false);
+  const handleDelete = async (taskId) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await api.delete(`/api/tasks/${taskId}`);
+        fetchTasks(selectedProjectId);
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete task.');
+      }
     }
   };
 
   return (
     <div className="module-container">
-      <div className="module-header">
-        <h2 className="module-title">Tasks Directory</h2>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+      <div className="module-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="module-title">Tasks Management</h2>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <select 
+            className="form-control"
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '20px',
-              border: '1px solid rgba(17,177,198,0.2)',
-              background: 'white',
-              color: '#0c5965',
-              fontWeight: 500,
-              fontSize: '0.9rem'
-            }}
+            style={{ width: '220px' }}
           >
-            <option value="" disabled>Select project...</option>
+            <option value="">Select Project</option>
             {projects.map(p => (
               <option key={p.id} value={p.id}>{p.projectName}</option>
             ))}
           </select>
+          <button 
+            className="btn-pill" 
+            style={{ marginTop: 0, padding: '10px 24px' }}
+            onClick={() => handleOpenFormModal('create')}
+            disabled={!selectedProjectId}
+          >
+            <Plus size={16} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} />
+            Add Task
+          </button>
         </div>
       </div>
 
@@ -262,7 +351,7 @@ const TasksModule = () => {
             Please select a project to view tasks.
           </div>
         ) : isLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#11b1c6' }}>Loading tasks...</div>
+          <div style={{ textAlign: 'center', padding: '40px', color: '#11b1c6' }}>Loading tasks & AI delay predictions...</div>
         ) : (
           <div className="table-responsive">
             <table className="custom-table">
@@ -272,7 +361,7 @@ const TasksModule = () => {
                   <th>Assignee</th>
                   <th>Priority</th>
                   <th>Status</th>
-                  <th>Complexity</th>
+                  <th>AI Delay Risk</th>
                   <th>Hours (Est / Act)</th>
                   <th>Deadline</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
@@ -286,30 +375,43 @@ const TasksModule = () => {
                     </td>
                   </tr>
                 ) : (
-                  tasks.map(task => (
-                    <tr key={task.id}>
-                      <td style={{ fontWeight: 600, color: '#0c5965' }}>{task.taskName}</td>
-                      <td>{task.assignee?.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Unassigned</span>}</td>
-                      <td>
-                        <span className={`priority-badge priority-${task.priority}`}>
-                          {task.priority}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`status-badge status-${task.status}`}>
-                          {task.status ? task.status.replace('_', ' ') : 'TODO'}
-                        </span>
-                      </td>
-                      <td>{task.complexity || '-'}</td>
-                      <td>{task.estimatedHours || 0}h / {task.actualHours || 0}h</td>
-                      <td>{task.deadline || '-'}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        <button className="action-btn edit-btn" style={{ color: '#11b1c6' }} onClick={() => fetchTaskDetails(task)} title="View Details">
-                          <Eye size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  tasks.map(task => {
+                    const delayRisk = taskDelayRisks[task.id] || 'LOW';
+                    return (
+                      <tr key={task.id}>
+                        <td style={{ fontWeight: 600, color: '#0c5965' }}>{task.taskName}</td>
+                        <td>{task.assignee?.name || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Unassigned</span>}</td>
+                        <td>
+                          <span className={`priority-badge priority-${task.priority}`}>
+                            {task.priority}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`status-badge status-${task.status}`}>
+                            {task.status ? task.status.replace('_', ' ') : 'TODO'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`score-badge ${delayRisk}`} style={{ padding: '4px 10px', fontSize: '0.78rem' }}>
+                            AI Risk: {delayRisk}
+                          </span>
+                        </td>
+                        <td>{task.estimatedHours || 0}h / {task.actualHours || 0}h</td>
+                        <td>{task.deadline || '-'}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button className="action-btn edit-btn" style={{ color: '#11b1c6' }} onClick={() => fetchTaskDetails(task)} title="View Details">
+                            <Eye size={16} />
+                          </button>
+                          <button className="action-btn edit-btn" onClick={() => handleOpenFormModal('edit', task)} title="Edit">
+                            <Edit2 size={16} />
+                          </button>
+                          <button className="action-btn delete-btn" onClick={() => handleDelete(task.id)} title="Delete">
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -317,7 +419,7 @@ const TasksModule = () => {
         )}
       </div>
 
-      {/* Task Create / Edit Modal via Portal */}
+      {/* Task Create / Edit Modal */}
       {showFormModal && createPortal(
         <div className="modal-overlay">
           <div className="modal-content">
@@ -334,33 +436,48 @@ const TasksModule = () => {
                 <label>Task Name *</label>
                 <input
                   type="text"
-                  name="taskName"
                   className="form-control"
-                  placeholder="e.g. User Auth API Integration"
-                  required
+                  placeholder="Task title..."
                   value={formData.taskName}
-                  onChange={handleInputChange}
+                  onChange={(e) => setFormData(p => ({ ...p, taskName: e.target.value }))}
+                  required
                 />
               </div>
 
               <div className="form-group">
-                <label>Task Description</label>
+                <label>Description</label>
                 <textarea
-                  name="description"
                   className="form-control"
-                  rows="2"
-                  placeholder="e.g. Implement login and register endpoints with JWT authentication"
+                  rows="3"
+                  placeholder="Task details & requirements..."
                   value={formData.description}
-                  onChange={handleInputChange}
-                  style={{ resize: 'vertical', borderRadius: '16px' }}
+                  onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
+                  style={{ resize: 'vertical' }}
                 />
               </div>
 
-              {/* Row: Assignee & Sprint */}
-              <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
-                {/* Custom Assignee Select */}
+              {/* Assignee & AI Suggestion Button */}
+              <div style={{ display: 'flex', gap: '16px' }}>
                 <div className="form-group" style={{ flex: 1, position: 'relative' }} ref={assigneeRef}>
-                  <label>Assignee</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ margin: 0 }}>Assignee</label>
+                    <button
+                      type="button"
+                      onClick={handleAiSuggestAssignee}
+                      disabled={isAiSuggesting}
+                      style={{ background: 'none', border: 'none', color: '#11b1c6', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <Sparkles size={14} className={isAiSuggesting ? 'spin' : ''} />
+                      {isAiSuggesting ? 'AI Matching...' : 'AI Suggest Assignee'}
+                    </button>
+                  </div>
+
+                  {aiRecommendationBadge && (
+                    <div style={{ fontSize: '0.78rem', color: '#059669', fontWeight: 700, marginBottom: '6px' }}>
+                      {aiRecommendationBadge}
+                    </div>
+                  )}
+
                   <div 
                     className="form-control" 
                     onClick={() => setOpenDropdown(openDropdown === 'assignee' ? null : 'assignee')}
@@ -369,7 +486,7 @@ const TasksModule = () => {
                     <span style={{ color: formData.assigneeId ? '#0c5965' : '#89c4d1' }}>
                       {formData.assigneeId 
                         ? (users.find(u => u.id.toString() === formData.assigneeId.toString()) 
-                            ? `${users.find(u => u.id.toString() === formData.assigneeId.toString()).name} (${users.find(u => u.id.toString() === formData.assigneeId.toString()).role ? users.find(u => u.id.toString() === formData.assigneeId.toString()).role.replace('_', ' ') : 'Member'})`
+                            ? `${users.find(u => u.id.toString() === formData.assigneeId.toString()).name}`
                             : 'Select Assignee')
                         : 'Unassigned'}
                     </span>
@@ -384,29 +501,20 @@ const TasksModule = () => {
                       >
                         Unassigned
                       </div>
-                      {users
-                        .filter(u => {
-                          if (!u || !u.role) return true;
-                          const r = u.role.toUpperCase();
-                          return !r.includes('ADMIN') && !r.includes('MANAGER') && !r.includes('CLIENT');
-                        })
-                        .map(u => (
+                      {users.map(u => (
                         <div
                           key={u.id}
                           className="custom-select-option"
                           onClick={() => { setFormData(prev => ({ ...prev, assigneeId: u.id.toString() })); setOpenDropdown(null); }}
                           style={{ padding: '8px 14px', cursor: 'pointer', color: formData.assigneeId.toString() === u.id.toString() ? '#11b1c6' : '#0c5965', fontWeight: formData.assigneeId.toString() === u.id.toString() ? '600' : '500', backgroundColor: formData.assigneeId.toString() === u.id.toString() ? 'rgba(17, 177, 198, 0.08)' : 'transparent', fontSize: '0.9rem' }}
-                          onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(17, 177, 198, 0.08)'; e.target.style.color = '#11b1c6'; }}
-                          onMouseLeave={(e) => { if (formData.assigneeId.toString() !== u.id.toString()) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
                         >
-                          {u.name} ({u.role ? u.role.replace('_', ' ') : 'Member'})
+                          {u.name} ({u.role ? u.role.replace('_', ' ') : 'Developer'})
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* Custom Sprint Select */}
                 <div className="form-group" style={{ flex: 1, position: 'relative' }} ref={sprintRef}>
                   <label>Sprint</label>
                   <div 
@@ -436,8 +544,6 @@ const TasksModule = () => {
                           className="custom-select-option"
                           onClick={() => { setFormData(prev => ({ ...prev, sprintId: s.id.toString() })); setOpenDropdown(null); }}
                           style={{ padding: '8px 14px', cursor: 'pointer', color: formData.sprintId.toString() === s.id.toString() ? '#11b1c6' : '#0c5965', fontWeight: formData.sprintId.toString() === s.id.toString() ? '600' : '500', backgroundColor: formData.sprintId.toString() === s.id.toString() ? 'rgba(17, 177, 198, 0.08)' : 'transparent', fontSize: '0.9rem' }}
-                          onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(17, 177, 198, 0.08)'; e.target.style.color = '#11b1c6'; }}
-                          onMouseLeave={(e) => { if (formData.sprintId.toString() !== s.id.toString()) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
                         >
                           {s.sprintName}
                         </div>
@@ -447,141 +553,32 @@ const TasksModule = () => {
                 </div>
               </div>
 
-              {/* Row: Priority & Status */}
-              <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
-                {/* Custom Priority Select */}
-                <div className="form-group" style={{ flex: 1, position: 'relative' }} ref={priorityRef}>
-                  <label>Priority</label>
-                  <div 
-                    className="form-control" 
-                    onClick={() => setOpenDropdown(openDropdown === 'priority' ? null : 'priority')}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                  >
-                    <span style={{ color: '#0c5965' }}>
-                      {formData.priority ? (formData.priority.charAt(0) + formData.priority.slice(1).toLowerCase()) : 'Medium'}
-                    </span>
-                    <ChevronDown size={18} color="#11b1c6" style={{ transform: openDropdown === 'priority' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
-                  </div>
-                  {openDropdown === 'priority' && (
-                    <div className="custom-select-options" style={{ position: 'absolute', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(12px)', border: '1px solid rgba(17, 177, 198, 0.25)', borderRadius: '14px', boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)', zIndex: 1000, maxHeight: '160px', overflowY: 'auto', marginTop: '4px', padding: '4px 0' }}>
-                      {[
-                        { label: 'Low', value: 'LOW' },
-                        { label: 'Medium', value: 'MEDIUM' },
-                        { label: 'High', value: 'HIGH' },
-                        { label: 'Critical', value: 'CRITICAL' }
-                      ].map(p => (
-                        <div
-                          key={p.value}
-                          className="custom-select-option"
-                          onClick={() => { setFormData(prev => ({ ...prev, priority: p.value })); setOpenDropdown(null); }}
-                          style={{ padding: '8px 14px', cursor: 'pointer', color: formData.priority === p.value ? '#11b1c6' : '#0c5965', fontWeight: formData.priority === p.value ? '600' : '500', backgroundColor: formData.priority === p.value ? 'rgba(17, 177, 198, 0.08)' : 'transparent', fontSize: '0.9rem' }}
-                          onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(17, 177, 198, 0.08)'; e.target.style.color = '#11b1c6'; }}
-                          onMouseLeave={(e) => { if (formData.priority !== p.value) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
-                        >
-                          {p.label}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Custom Status Select */}
-                <div className="form-group" style={{ flex: 1, position: 'relative' }} ref={statusRef}>
-                  <label>Status</label>
-                  <div 
-                    className="form-control" 
-                    onClick={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                  >
-                    <span style={{ color: '#0c5965' }}>
-                      {formData.status ? (formData.status.charAt(0) + formData.status.slice(1).toLowerCase()).replace('_', ' ') : 'To Do'}
-                    </span>
-                    <ChevronDown size={18} color="#11b1c6" style={{ transform: openDropdown === 'status' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
-                  </div>
-                  {openDropdown === 'status' && (
-                    <div className="custom-select-options" style={{ position: 'absolute', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(12px)', border: '1px solid rgba(17, 177, 198, 0.25)', borderRadius: '14px', boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)', zIndex: 1000, maxHeight: '160px', overflowY: 'auto', marginTop: '4px', padding: '4px 0' }}>
-                      {[
-                        { label: 'To Do', value: 'TODO' },
-                        { label: 'In Progress', value: 'IN_PROGRESS' },
-                        { label: 'Blocked', value: 'BLOCKED' },
-                        { label: 'Done', value: 'DONE' }
-                      ].map(s => (
-                        <div
-                          key={s.value}
-                          className="custom-select-option"
-                          onClick={() => { setFormData(prev => ({ ...prev, status: s.value })); setOpenDropdown(null); }}
-                          style={{ padding: '8px 14px', cursor: 'pointer', color: formData.status === s.value ? '#11b1c6' : '#0c5965', fontWeight: formData.status === s.value ? '600' : '500', backgroundColor: formData.status === s.value ? 'rgba(17, 177, 198, 0.08)' : 'transparent', fontSize: '0.9rem' }}
-                          onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(17, 177, 198, 0.08)'; e.target.style.color = '#11b1c6'; }}
-                          onMouseLeave={(e) => { if (formData.status !== s.value) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
-                        >
-                          {s.label}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Row: Est. Hours & Complexity */}
-              <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '16px' }}>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label>Est. Hours</label>
+                  <label>Estimated Hours</label>
                   <input
                     type="number"
                     step="0.5"
-                    name="estimatedHours"
                     className="form-control"
-                    placeholder="e.g. 16"
+                    placeholder="e.g. 8.0"
                     value={formData.estimatedHours}
-                    onChange={handleInputChange}
+                    onChange={(e) => setFormData(p => ({ ...p, estimatedHours: e.target.value }))}
                   />
                 </div>
 
-                {/* Custom Complexity Select */}
-                <div className="form-group" style={{ flex: 1, position: 'relative' }} ref={complexityRef}>
-                  <label>Complexity</label>
-                  <div 
-                    className="form-control" 
-                    onClick={() => setOpenDropdown(openDropdown === 'complexity' ? null : 'complexity')}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                  >
-                    <span style={{ color: '#0c5965' }}>
-                      {formData.complexity || 'Medium'}
-                    </span>
-                    <ChevronDown size={18} color="#11b1c6" style={{ transform: openDropdown === 'complexity' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} />
-                  </div>
-                  {openDropdown === 'complexity' && (
-                    <div className="custom-select-options" style={{ position: 'absolute', width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.98)', backdropFilter: 'blur(12px)', border: '1px solid rgba(17, 177, 198, 0.25)', borderRadius: '14px', boxShadow: '0 12px 30px rgba(17, 177, 198, 0.16)', zIndex: 1000, maxHeight: '160px', overflowY: 'auto', marginTop: '4px', padding: '4px 0' }}>
-                      {['Low', 'Medium', 'High'].map(c => (
-                        <div
-                          key={c}
-                          className="custom-select-option"
-                          onClick={() => { setFormData(prev => ({ ...prev, complexity: c })); setOpenDropdown(null); }}
-                          style={{ padding: '8px 14px', cursor: 'pointer', color: formData.complexity === c ? '#11b1c6' : '#0c5965', fontWeight: formData.complexity === c ? '600' : '500', backgroundColor: formData.complexity === c ? 'rgba(17, 177, 198, 0.08)' : 'transparent', fontSize: '0.9rem' }}
-                          onMouseEnter={(e) => { e.target.style.backgroundColor = 'rgba(17, 177, 198, 0.08)'; e.target.style.color = '#11b1c6'; }}
-                          onMouseLeave={(e) => { if (formData.complexity !== c) { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#0c5965'; } }}
-                        >
-                          {c}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Deadline</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={formData.deadline}
+                    onChange={(e) => setFormData(p => ({ ...p, deadline: e.target.value }))}
+                  />
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Deadline</label>
-                <input
-                  type="date"
-                  name="deadline"
-                  className="form-control"
-                  value={formData.deadline}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button type="button" className="btn-secondary-pill" onClick={() => setShowFormModal(false)}>
+              <div className="modal-actions">
+                <button type="button" className="btn-pill" style={{ background: '#cbd5e1', color: '#334155' }} onClick={() => setShowFormModal(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="btn-pill" disabled={isSubmitting}>
@@ -589,115 +586,6 @@ const TasksModule = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Task Details Popup Modal via Portal */}
-      {showDetailModal && selectedTask && createPortal(
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '580px' }}>
-            <div className="modal-bg-glass"></div>
-            <div className="modal-header">
-              <h3>Task Detail: {selectedTask.taskName}</h3>
-              <button className="modal-close" onClick={() => setShowDetailModal(false)}><X size={20} /></button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px', fontSize: '0.9rem' }}>
-              <div>
-                <p><strong>Project:</strong> {selectedTask.project?.projectName || 'None'}</p>
-                <p><strong>Sprint:</strong> {selectedTask.sprint?.sprintName || 'None'}</p>
-                <p><strong>Assignee:</strong> {selectedTask.assignee?.name || 'Unassigned'}</p>
-                <p><strong>Complexity:</strong> {selectedTask.complexity || 'Unassigned'}</p>
-              </div>
-              <div>
-                <p><strong>Priority:</strong> {selectedTask.priority}</p>
-                <p><strong>Status:</strong> {selectedTask.status}</p>
-                <p><strong>Est. Hours:</strong> {selectedTask.estimatedHours || 0} hrs</p>
-                <p><strong>Actual Hours:</strong> {selectedTask.actualHours || 0} hrs</p>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '16px' }}>
-              <strong style={{ color: '#0c5965' }}>Description:</strong>
-              <p style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', color: '#334155', fontSize: '0.9rem', marginTop: '6px' }}>
-                {selectedTask.description || 'No description provided.'}
-              </p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-              <div>
-                <h4 style={{ margin: '0 0 8px 0', color: '#0c5965', fontSize: '0.95rem' }}>Work Logs History</h4>
-                {isDetailLoading ? (
-                  <p style={{ fontSize: '0.85rem' }}>Loading logs...</p>
-                ) : taskWorkLogs.length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>No logs reported.</p>
-                ) : (
-                  <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                    {taskWorkLogs.map(log => (
-                      <div key={log.id} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0c5965', fontWeight: 500 }}>
-                          <span>{log.loggedHours} hrs (by {log.user?.name || 'User'})</span>
-                          <span>{log.logDate}</span>
-                        </div>
-                        <p style={{ margin: '4px 0 0 0', color: '#64748b' }}>{log.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <h4 style={{ margin: '0 0 8px 0', color: '#0c5965', fontSize: '0.95rem' }}>Blockers List</h4>
-                {isDetailLoading ? (
-                  <p style={{ fontSize: '0.85rem' }}>Loading blockers...</p>
-                ) : taskBlockers.length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: '#64748b' }}>No blockers found.</p>
-                ) : (
-                  <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                    {taskBlockers.map(blocker => (
-                      <div key={blocker.id} style={{ padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 500 }}>
-                          <span style={{ color: blocker.status === 'ACTIVE' ? '#ef4444' : '#059669' }}>
-                            {blocker.status}
-                          </span>
-                          <span style={{ color: '#64748b' }}>{blocker.createdAt ? blocker.createdAt.substring(0,10) : ''}</span>
-                        </div>
-                        <p style={{ margin: '4px 0 0 0', color: '#475569' }}><strong>Reason:</strong> {blocker.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Custom Confirmation Modal for Delete Task */}
-      {confirmDeleteTaskId && createPortal(
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '420px', textAlign: 'center', padding: '32px 24px' }}>
-            <div className="modal-bg-glass"></div>
-            <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Trash2 size={28} color="#ef4444" />
-              </div>
-            </div>
-            <h3 style={{ color: '#0c5965', margin: '0 0 8px 0', fontSize: '1.25rem', fontWeight: 600 }}>Delete Task?</h3>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0 0 24px 0', lineHeight: 1.5 }}>
-              Are you sure you want to delete this task? This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button className="btn-secondary-pill" onClick={() => setConfirmDeleteTaskId(null)}>
-                Cancel
-              </button>
-              <button className="btn-pill" style={{ marginTop: 0, background: '#ef4444', borderColor: '#ef4444' }} onClick={executeDeleteTask}>
-                Yes, Delete Task
-              </button>
-            </div>
           </div>
         </div>,
         document.body

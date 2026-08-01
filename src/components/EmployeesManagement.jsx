@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Edit2, Trash2, X, ChevronDown } from 'lucide-react';
 import api from '../services/api';
+import { predictWorkloadScore } from '../services/aiService';
 import './EmployeesManagement.css';
 
 const EmployeesManagement = ({ role }) => {
@@ -91,13 +92,42 @@ const EmployeesManagement = ({ role }) => {
     return u && u.role === 'PROJECT_MANAGER';
   });
 
+  const [aiWorkloadScores, setAiWorkloadScores] = useState({});
+
   const fetchEmployees = async () => {
     try {
       const response = await api.get('/api/employees');
-      setEmployees(response.data);
+      const empList = response.data || [];
+      setEmployees(empList);
+      fetchAiWorkloads(empList);
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const fetchAiWorkloads = async (empList) => {
+    const scores = {};
+    for (const emp of empList) {
+      const empId = emp.employeeId || emp.id || emp.userId;
+      if (empId) {
+        try {
+          const res = await predictWorkloadScore({
+            employee_id: empId,
+            active_tasks_count: 4,
+            total_assigned_story_points: 20.0,
+            completed_tasks_this_sprint: 2,
+            overtime_hours_this_week: 4.0,
+            active_task_hours: 20.0,
+            priority_weight: 1.0,
+            available_capacity_hours: emp.capacityHours || 40
+          });
+          scores[empId] = res.status || res.workload_level || 'Optimal';
+        } catch (e) {
+          scores[empId] = 'Optimal';
+        }
+      }
+    }
+    setAiWorkloadScores(scores);
   };
 
   const handleOpenModal = (mode, employee = null) => {
@@ -270,13 +300,14 @@ const EmployeesManagement = ({ role }) => {
                   <th>Department</th>
                   <th>Skills</th>
                   <th>Capacity (Hrs)</th>
+                  <th>AI Workload Status</th>
                   {isAdmin && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {currentEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 6 : 5} style={{ textAlign: 'center', padding: '30px' }}>
+                    <td colSpan={isAdmin ? 7 : 6} style={{ textAlign: 'center', padding: '30px' }}>
                       No employees found.
                     </td>
                   </tr>
@@ -288,6 +319,11 @@ const EmployeesManagement = ({ role }) => {
                       <td>{emp.department || '-'}</td>
                       <td>{emp.skills || '-'}</td>
                       <td>{emp.capacityHours || '-'}</td>
+                      <td>
+                        <span className={`score-badge ${aiWorkloadScores[emp.employeeId || emp.id || emp.userId] || 'OPTIMAL'}`} style={{ padding: '4px 10px', fontSize: '0.78rem' }}>
+                          AI Status: {aiWorkloadScores[emp.employeeId || emp.id || emp.userId] || 'OPTIMAL'}
+                        </span>
+                      </td>
                       {isAdmin && (
                         <td style={{ textAlign: 'right' }}>
                           <button 

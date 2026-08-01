@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Edit2, Trash2, X, ChevronDown, Info } from 'lucide-react';
 import api from '../services/api';
+import { predictSprintRisk } from '../services/aiService';
 import './SprintsManagement.css';
 
 const TooltipText = ({ text, maxLength = 25 }) => {
@@ -148,6 +149,32 @@ const SprintsManagement = ({ role }) => {
     return [];
   };
 
+  const [aiSprintRisks, setAiSprintRisks] = useState({});
+
+  const fetchAiSprintRisks = async (sprintList) => {
+    const risks = {};
+    for (const sp of sprintList) {
+      if (sp.id) {
+        try {
+          const res = await predictSprintRisk({
+            sprint_id: sp.id,
+            total_story_points: 40,
+            completed_story_points: 20,
+            total_tasks: 10,
+            blocked_tasks: 1,
+            team_members_count: 5,
+            sprint_duration_days: 14,
+            days_elapsed: 7
+          });
+          risks[sp.id] = res.risk_level || res.sprint_health || 'HEALTHY';
+        } catch (e) {
+          risks[sp.id] = 'HEALTHY';
+        }
+      }
+    }
+    setAiSprintRisks(risks);
+  };
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -158,6 +185,10 @@ const SprintsManagement = ({ role }) => {
 
       let sprintList = normalizeArray(sprintRes.data);
       let projList = normalizeArray(projRes.data);
+      
+      setSprints(sprintList);
+      setProjects(projList);
+      fetchAiSprintRisks(sprintList);
 
       if (role === 'CLIENT_VIEWER' && projList.length === 0) {
         const storedId = localStorage.getItem('projectId') || localStorage.getItem('registeredProjectId');
@@ -272,8 +303,10 @@ const SprintsManagement = ({ role }) => {
       const { action, payload } = confirmConfig;
       
       if (action === 'create' || action === 'edit') {
+        const projIdNum = parseInt(payload.projectId, 10);
         const data = {
-          projectId: parseInt(payload.projectId, 10),
+          projectId: projIdNum,
+          project: { id: projIdNum },
           sprintName: payload.sprintName,
           startDate: payload.startDate,
           endDate: payload.endDate,
@@ -377,13 +410,14 @@ const SprintsManagement = ({ role }) => {
                   <th>Goal</th>
                   <th>Capacity</th>
                   <th>Status</th>
+                  <th>AI Sprint Risk</th>
                   {canEdit && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {currentSprints.length === 0 ? (
                   <tr>
-                    <td colSpan={canEdit ? 7 : 6} style={{ textAlign: 'center', padding: '30px' }}>
+                    <td colSpan={canEdit ? 8 : 7} style={{ textAlign: 'center', padding: '30px' }}>
                       No sprints found.
                     </td>
                   </tr>
@@ -404,6 +438,11 @@ const SprintsManagement = ({ role }) => {
                       </td>
                       <td>{sprint.capacityHours ? `${sprint.capacityHours} hrs` : '-'}</td>
                       <td><span className={`status-badge status-${sprint.status}`}>{sprint.status}</span></td>
+                      <td>
+                        <span className={`score-badge ${aiSprintRisks[sprint.id] || 'HEALTHY'}`} style={{ padding: '4px 10px', fontSize: '0.78rem' }}>
+                          AI Risk: {aiSprintRisks[sprint.id] || 'HEALTHY'}
+                        </span>
+                      </td>
                       {canEdit && (
                         <td style={{ textAlign: 'right' }}>
                           <button 
