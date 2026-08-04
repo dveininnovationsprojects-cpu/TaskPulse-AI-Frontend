@@ -292,7 +292,6 @@ const MyTasksModule = () => {
               )}
             </div>
 
-            {/* History Tabs / Sections */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
               <div>
                 <h4 style={{ margin: '0 0 10px 0', color: '#0c5965' }}>Recent Work Logs</h4>
