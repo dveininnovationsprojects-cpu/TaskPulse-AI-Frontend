@@ -164,21 +164,13 @@ const ProjectsManagement = ({ role }) => {
 
       if (role === 'CLIENT_VIEWER' && projList.length === 0) {
         const storedId = localStorage.getItem('projectId') || localStorage.getItem('registeredProjectId');
-        const candidateIds = storedId 
-          ? [storedId, ...Array.from({ length: 20 }, (_, i) => (i + 1).toString()).filter(id => id !== storedId)] 
-          : Array.from({ length: 20 }, (_, i) => (i + 1).toString());
-
-        for (const id of candidateIds) {
+        if (storedId) {
           try {
-            const specificProjRes = await api.get(`/api/projects/${id}`);
+            const specificProjRes = await api.get(`/api/projects/${storedId}`);
             if (specificProjRes.data && specificProjRes.data.id) {
               projList = [specificProjRes.data];
-              localStorage.setItem('projectId', specificProjRes.data.id.toString());
-              break;
             }
-          } catch (e) {
-            // Ignore access denied errors for projects not assigned to this client
-          }
+          } catch (e) {}
         }
       }
 
