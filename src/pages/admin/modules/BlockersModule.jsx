@@ -287,7 +287,6 @@ const BlockersModule = () => {
         document.body
       )}
 
-      {/* Report Blocker Modal (Sprint UI Styled) */}
       {showModal && createPortal(
         <div className="modal-overlay">
           <div className="modal-content">
