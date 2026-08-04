@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, Plus, Calendar, BookOpen, ChevronDown, User, Layers, Filter, Search, CheckCircle, Info, RefreshCw } from 'lucide-react';
+import { Clock, Plus, Calendar, BookOpen, ChevronDown, User, Layers, Filter, Search, CheckCircle, Info, RefreshCw, FileText, CheckSquare, TrendingUp, Zap, Activity, X } from 'lucide-react';
 import api, { getCurrentUser, refreshCurrentUser } from '../services/api';
 import './WorkLogsManagement.css';
 
@@ -287,42 +287,70 @@ const WorkLogsManagement = ({ role = 'DEVELOPER' }) => {
         {/* Stats Cards */}
         <div className="worklogs-stats-grid">
           <div className="worklog-stat-card">
-            <div className="stat-icon-wrapper">
-              <Clock size={26} />
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-cyan">
+                <span className="stat-pulse-dot"></span> EFFORT TRACKING
+              </span>
+              <span className="stat-trend-badge trend-cyan">Live</span>
             </div>
-            <div className="stat-info">
-              <h4>Total Hours Logged</h4>
-              <div className="stat-value">{totalHours.toFixed(1)} hrs</div>
+            <div className="stat-main">
+              <div className="stat-value">
+                {totalHours.toFixed(1)} <span className="stat-unit">hrs</span>
+              </div>
+              <h4 className="stat-label">Total Hours Logged</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-cyan" style={{ width: `${Math.min((totalHours / 40) * 100, 100) || 5}%` }}></div>
             </div>
           </div>
 
           <div className="worklog-stat-card">
-            <div className="stat-icon-wrapper" style={{ color: '#0284c7', background: 'rgba(56, 189, 248, 0.15)' }}>
-              <BookOpen size={26} />
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-teal">
+                LOG COUNTER
+              </span>
+              <span className="stat-trend-badge trend-teal">{totalLogsCount} Records</span>
             </div>
-            <div className="stat-info">
-              <h4>Work Log Entries</h4>
+            <div className="stat-main">
               <div className="stat-value">{totalLogsCount}</div>
+              <h4 className="stat-label">Work Log Entries</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-teal" style={{ width: `${Math.min((totalLogsCount / 20) * 100, 100) || 5}%` }}></div>
             </div>
           </div>
 
           <div className="worklog-stat-card">
-            <div className="stat-icon-wrapper" style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.15)' }}>
-              <Layers size={26} />
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-sky">
+                TASK COVERAGE
+              </span>
+              <span className="stat-trend-badge trend-sky">{uniqueTasksCount} Active</span>
             </div>
-            <div className="stat-info">
-              <h4>Tasks Worked On</h4>
+            <div className="stat-main">
               <div className="stat-value">{uniqueTasksCount}</div>
+              <h4 className="stat-label">Tasks Worked On</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-sky" style={{ width: `${Math.min((uniqueTasksCount / 10) * 100, 100) || 5}%` }}></div>
             </div>
           </div>
 
           <div className="worklog-stat-card">
-            <div className="stat-icon-wrapper" style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.15)' }}>
-              <Calendar size={26} />
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-deep">
+                DAILY PACE
+              </span>
+              <span className="stat-trend-badge trend-deep">Average</span>
             </div>
-            <div className="stat-info">
-              <h4>Avg Hours / Entry</h4>
-              <div className="stat-value">{avgHoursPerLog} hrs</div>
+            <div className="stat-main">
+              <div className="stat-value">
+                {avgHoursPerLog} <span className="stat-unit">hrs</span>
+              </div>
+              <h4 className="stat-label">Avg Hours / Entry</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-deep" style={{ width: `${Math.min((parseFloat(avgHoursPerLog) / 8) * 100, 100) || 5}%` }}></div>
             </div>
           </div>
         </div>
@@ -484,9 +512,9 @@ const WorkLogsManagement = ({ role = 'DEVELOPER' }) => {
               </div>
               <button
                 onClick={() => setShowLogModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '1.1rem' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
               >
-                ✕
+                <X size={20} color="#64748b" />
               </button>
             </div>
 

@@ -54,7 +54,8 @@ const BlockersModule = () => {
       const blockersRes = await api.get('/api/blockers/active').catch(() => ({ data: [] }));
       setBlockers(blockersRes.data || []);
 
-      if (user && user.role === 'DEVELOPER') {
+      const isDeveloper = user && user.role && user.role.includes('DEVELOPER');
+      if (isDeveloper && user.id) {
         const tasksRes = await api.get(`/api/tasks/assignee/${user.id}`).catch(() => ({ data: [] }));
         setTasks((tasksRes.data || []).filter(t => t.status !== 'DONE'));
       } else {
@@ -165,11 +166,78 @@ const BlockersModule = () => {
       <div className="module-content">
         {error && <div className="error-message">{error}</div>}
 
+        {/* Symbol-Free Stat Cards */}
+        <div className="worklogs-stats-grid" style={{ marginBottom: '24px' }}>
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-cyan">
+                <span className="stat-pulse-dot"></span> ACTIVE BLOCKERS
+              </span>
+              <span className="stat-trend-badge trend-cyan">Live Risk</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{blockers.filter(b => b.status === 'ACTIVE').length}</div>
+              <h4 className="stat-label">Critical Blockers</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-cyan" style={{ width: `${Math.min((blockers.filter(b => b.status === 'ACTIVE').length / (blockers.length || 1)) * 100, 100) || 10}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-teal">
+                AFFECTED TASKS
+              </span>
+              <span className="stat-trend-badge trend-teal">Impact</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{new Set(blockers.map(b => b.taskId)).size}</div>
+              <h4 className="stat-label">Tasks Impacted</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-teal" style={{ width: `${Math.min((new Set(blockers.map(b => b.taskId)).size / 10) * 100, 100) || 5}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-sky">
+                AVAILABLE TASKS
+              </span>
+              <span className="stat-trend-badge trend-sky">{tasks.length} Ready</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{tasks.length}</div>
+              <h4 className="stat-label">Selectable Tasks</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-sky" style={{ width: `${Math.min((tasks.length / 15) * 100, 100) || 5}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-deep">
+                RESOLUTION STATUS
+              </span>
+              <span className="stat-trend-badge trend-deep">Tracking</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{blockers.length === 0 ? '100%' : 'Active'}</div>
+              <h4 className="stat-label">Project Health</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-deep" style={{ width: blockers.length === 0 ? '100%' : '50%' }}></div>
+            </div>
+          </div>
+        </div>
+
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#11b1c6' }}>Loading blockers data...</div>
         ) : blockers.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px 20px', background: 'rgba(255, 255, 255, 0.4)', borderRadius: '20px', border: '1px border-dashed rgba(17, 177, 198, 0.3)' }}>
-            <AlertTriangle size={40} color="#11b1c6" style={{ marginBottom: '12px', opacity: 0.6 }} />
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#11b1c6', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>[ HEALTHY STATUS ]</div>
             <h3 style={{ color: '#0c5965', margin: '0 0 6px 0' }}>No Active Blockers</h3>
             <p style={{ color: '#64748b', margin: 0, fontSize: '0.95rem' }}>Great job! All team tasks are currently progressing without blockages.</p>
           </div>
@@ -182,9 +250,9 @@ const BlockersModule = () => {
                   background: 'rgba(255, 255, 255, 0.85)', 
                   backdropFilter: 'blur(10px)',
                   borderRadius: '20px', 
-                  border: '1px solid rgba(239, 68, 68, 0.2)', 
+                  border: '1px solid rgba(17, 177, 198, 0.25)', 
                   padding: '20px',
-                  boxShadow: '0 8px 24px rgba(239, 68, 68, 0.08)',
+                  boxShadow: '0 8px 24px rgba(17, 177, 198, 0.08)',
                   display: 'flex',
                   flexDirection: 'column',
                   justify: 'space-between'
@@ -193,8 +261,8 @@ const BlockersModule = () => {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <span style={{ 
-                      background: b.status === 'ACTIVE' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
-                      color: b.status === 'ACTIVE' ? '#ef4444' : '#10b981', 
+                      background: b.status === 'ACTIVE' ? 'rgba(17, 177, 198, 0.12)' : 'rgba(16, 185, 129, 0.12)', 
+                      color: b.status === 'ACTIVE' ? '#0c5965' : '#10b981', 
                       padding: '4px 12px', 
                       borderRadius: '12px', 
                       fontSize: '0.75rem', 
@@ -217,8 +285,8 @@ const BlockersModule = () => {
                     Reported by: <strong style={{ color: '#334155' }}>{b.reportedBy?.name || 'User'}</strong>
                   </p>
 
-                  <div style={{ background: 'rgba(248, 250, 252, 0.8)', padding: '12px', borderRadius: '12px', marginBottom: '16px', borderLeft: '3px solid #ef4444' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                  <div style={{ background: 'rgba(17, 177, 198, 0.06)', padding: '12px', borderRadius: '12px', marginBottom: '16px', borderLeft: '3px solid #11b1c6' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#0c5965', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
                       Reason for Blockage:
                     </span>
                     <p style={{ margin: 0, fontSize: '0.9rem', color: '#334155', lineHeight: 1.4 }}>
@@ -240,14 +308,10 @@ const BlockersModule = () => {
                       width: '100%', 
                       margin: 0, 
                       padding: '10px 18px', 
-                      background: 'linear-gradient(135deg, #11b1c6 0%, #0c5965 100%)', 
-                      color: 'white', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center', 
-                      gap: '8px', 
-                      boxShadow: '0 6px 20px rgba(17, 177, 198, 0.25)', 
-                      border: 'none'
+                      gap: '8px' 
                     }}
                     onClick={() => setConfirmResolveBlocker(b)}
                   >

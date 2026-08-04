@@ -174,6 +174,73 @@ const MyTasksModule = () => {
       <div className="module-content">
         {error && <div className="error-message">{error}</div>}
 
+        {/* Symbol-Free Stat Cards */}
+        <div className="worklogs-stats-grid" style={{ marginBottom: '24px' }}>
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-cyan">
+                <span className="stat-pulse-dot"></span> ASSIGNED TASKS
+              </span>
+              <span className="stat-trend-badge trend-cyan">Active</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{tasks.length}</div>
+              <h4 className="stat-label">Total Assigned</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-cyan" style={{ width: `${Math.min((tasks.length / 10) * 100, 100) || 10}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-teal">
+                IN PROGRESS
+              </span>
+              <span className="stat-trend-badge trend-teal">{tasks.filter(t => t.status === 'IN_PROGRESS').length} Active</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{tasks.filter(t => t.status === 'IN_PROGRESS').length}</div>
+              <h4 className="stat-label">Tasks In Progress</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-teal" style={{ width: `${Math.min((tasks.filter(t => t.status === 'IN_PROGRESS').length / (tasks.length || 1)) * 100, 100) || 5}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-sky">
+                COMPLETED
+              </span>
+              <span className="stat-trend-badge trend-sky">{tasks.filter(t => t.status === 'DONE').length} Done</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{tasks.filter(t => t.status === 'DONE').length}</div>
+              <h4 className="stat-label">Tasks Completed</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-sky" style={{ width: `${Math.min((tasks.filter(t => t.status === 'DONE').length / (tasks.length || 1)) * 100, 100) || 5}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-deep">
+                BLOCKED TASKS
+              </span>
+              <span className="stat-trend-badge trend-deep">{tasks.filter(t => t.status === 'BLOCKED').length} Issues</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{tasks.filter(t => t.status === 'BLOCKED').length}</div>
+              <h4 className="stat-label">Attention Needed</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-deep" style={{ width: `${Math.min((tasks.filter(t => t.status === 'BLOCKED').length / (tasks.length || 1)) * 100, 100) || 5}%` }}></div>
+            </div>
+          </div>
+        </div>
+
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#11b1c6' }}>Loading your tasks...</div>
         ) : (

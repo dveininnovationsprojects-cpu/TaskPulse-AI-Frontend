@@ -166,6 +166,73 @@ const ActivitiesModule = () => {
       <div className="module-content">
         {error && <div className="error-message">{error}</div>}
 
+        {/* Symbol-Free Stat Cards */}
+        <div className="worklogs-stats-grid" style={{ marginBottom: '24px' }}>
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-cyan">
+                <span className="stat-pulse-dot"></span> AUDIT LOGS
+              </span>
+              <span className="stat-trend-badge trend-cyan">Live</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{activities.length}</div>
+              <h4 className="stat-label">Total Activities</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-cyan" style={{ width: `${Math.min((activities.length / 50) * 100, 100) || 10}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-teal">
+                FILTERED EVENTS
+              </span>
+              <span className="stat-trend-badge trend-teal">{filteredActivities.length} Matches</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{filteredActivities.length}</div>
+              <h4 className="stat-label">Active Filter Results</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-teal" style={{ width: `${Math.min((filteredActivities.length / (activities.length || 1)) * 100, 100) || 5}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-sky">
+                ENTITY TYPES
+              </span>
+              <span className="stat-trend-badge trend-sky">{new Set(activities.map(a => a.entityType)).size} Categories</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">{new Set(activities.map(a => a.entityType)).size}</div>
+              <h4 className="stat-label">Tracked Entities</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-sky" style={{ width: `${Math.min((new Set(activities.map(a => a.entityType)).size / 8) * 100, 100) || 5}%` }}></div>
+            </div>
+          </div>
+
+          <div className="worklog-stat-card">
+            <div className="stat-card-top">
+              <span className="stat-category-tag tag-deep">
+                SYSTEM HEALTH
+              </span>
+              <span className="stat-trend-badge trend-deep">Active</span>
+            </div>
+            <div className="stat-main">
+              <div className="stat-value">100%</div>
+              <h4 className="stat-label">Audit Log Status</h4>
+            </div>
+            <div className="stat-bar-container">
+              <div className="stat-bar-fill bar-deep" style={{ width: '100%' }}></div>
+            </div>
+          </div>
+        </div>
+
         {/* Filter Controls Bar */}
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
