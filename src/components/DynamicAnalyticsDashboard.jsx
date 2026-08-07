@@ -32,29 +32,37 @@ const SVGLineChart = ({ data }) => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
+
   const maxVal = Math.max(...timelineData.map(d => Math.max(d.completed || 0, d.total || 0, 5)), 5);
 
   const points = timelineData.map((d, i) => {
-    const x = padding + (i / Math.max(timelineData.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - ((d.completed || 0) / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(timelineData.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - ((d.completed || 0) / maxVal) * chartH;
     return { x, y, val: d.completed || 0, label: d.date || `P${i+1}` };
   });
 
   const totalPoints = timelineData.map((d, i) => {
-    const x = padding + (i / Math.max(timelineData.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - ((d.total || 0) / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(timelineData.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - ((d.total || 0) / maxVal) * chartH;
     return { x, y, val: d.total || 0 };
   });
 
   const lineD = points.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
   const areaD = points.length > 0 
-    ? `${lineD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`
+    ? `${lineD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`
     : '';
   const totalLineD = totalPoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
 
+  const formatVal = (v) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       <defs>
         <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#11b1c6" stopOpacity="0.4" />
@@ -62,12 +70,12 @@ const SVGLineChart = ({ data }) => {
         </linearGradient>
       </defs>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
-              {Math.round(maxVal * pct)}
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+              {formatVal(Math.round(maxVal * pct))}
             </text>
           </g>
         );
@@ -75,13 +83,17 @@ const SVGLineChart = ({ data }) => {
       <path d={totalLineD} fill="none" stroke="#cbd5e1" strokeWidth="2" strokeDasharray="4 4" />
       <path d={areaD} fill="url(#lineGrad)" />
       <path d={lineD} fill="none" stroke="#11b1c6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="5" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
-          <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{p.val}</text>
-          <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{p.label}</text>
-        </g>
-      ))}
+      {points.map((p, i) => {
+        const textY = Math.max(p.y - 8, 14);
+        const lbl = p.label.length > 8 ? p.label.slice(0, 7) + '…' : p.label;
+        return (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
+            <text x={p.x} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{formatVal(p.val)}</text>
+            <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{lbl}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 };
@@ -90,13 +102,22 @@ const SVGBarChart = ({ data }) => {
   if (!data || data.length === 0) return <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>No employee data</div>;
   const width = 450;
   const height = 180;
-  const padding = 35;
-  const sliceData = data.slice(0, 6);
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
+
+  const sliceData = data.slice(0, 8);
   const maxVal = Math.max(...sliceData.map(d => d.completedTasks || d.tasksCompleted || 1), 5);
-  const barWidth = Math.min(36, (width - padding * 2) / (sliceData.length * 1.8));
+  const slotWidth = chartW / sliceData.length;
+  const barWidth = Math.min(32, slotWidth * 0.65);
+
+  const formatVal = (v) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       <defs>
         <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#11b1c6" />
@@ -104,28 +125,29 @@ const SVGBarChart = ({ data }) => {
         </linearGradient>
       </defs>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
-              {Math.round(maxVal * pct)}
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+              {formatVal(Math.round(maxVal * pct))}
             </text>
           </g>
         );
       })}
       {sliceData.map((d, i) => {
         const val = d.completedTasks || d.tasksCompleted || 0;
-        const barHeight = (val / maxVal) * (height - padding * 2);
-        const slotWidth = (width - padding * 2) / sliceData.length;
-        const x = padding + i * slotWidth + (slotWidth - barWidth) / 2;
-        const y = height - padding - barHeight;
-        const name = (d.name || d.employeeName || `Emp ${i+1}`).split(' ')[0];
+        const barHeight = (val / maxVal) * chartH;
+        const x = paddingLeft + i * slotWidth + (slotWidth - barWidth) / 2;
+        const y = height - paddingBottom - barHeight;
+        const rawName = (d.name || d.employeeName || `Emp ${i+1}`).split(' ')[0];
+        const name = rawName.length > 7 ? rawName.slice(0, 6) + '…' : rawName;
+        const textY = Math.max(y - 5, 14);
 
         return (
           <g key={i}>
-            <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 4)} rx="6" fill="url(#barGrad)" />
-            <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#059669">{val}</text>
+            <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 4)} rx="5" fill="url(#barGrad)" />
+            <text x={x + barWidth / 2} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#059669">{formatVal(val)}</text>
             <text x={x + barWidth / 2} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{name}</text>
           </g>
         );
@@ -140,9 +162,9 @@ const SVGPieChart = ({ data }) => {
   const validData = data.filter(d => (d.count || 0) > 0);
   const displayData = validData.length > 0 ? validData : data;
   const total = displayData.reduce((sum, item) => sum + (item.count || 0), 0) || 1;
-  const cx = 90;
-  const cy = 90;
-  const r = 70;
+  const cx = 85;
+  const cy = 85;
+  const r = 65;
 
   let cumulativeAngle = 0;
 
@@ -174,8 +196,8 @@ const SVGPieChart = ({ data }) => {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-      <svg width="180" height="180" viewBox="0 0 180 180" style={{ overflow: 'visible' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', overflow: 'hidden' }}>
+      <svg width="170" height="170" viewBox="0 0 170 170" style={{ overflow: 'hidden', flexShrink: 0 }}>
         {slices.map((slice, i) => (
           <path
             key={i}
@@ -189,14 +211,14 @@ const SVGPieChart = ({ data }) => {
           </path>
         ))}
       </svg>
-      <div style={{ flex: 1, minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ flex: 1, minWidth: '130px', maxHeight: '170px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {slices.map((slice, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '30%', background: slice.color || '#11b1c6' }}></span>
-              <span style={{ color: '#334155', fontWeight: 500 }}>{slice.status}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '30%', background: slice.color || '#11b1c6', flexShrink: 0 }}></span>
+              <span style={{ color: '#334155', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slice.status}</span>
             </div>
-            <span style={{ fontWeight: 700, color: '#0c5965' }}>{slice.pct}%</span>
+            <span style={{ fontWeight: 700, color: '#0c5965', flexShrink: 0 }}>{slice.pct}%</span>
           </div>
         ))}
       </div>
@@ -210,10 +232,10 @@ const SVGDonutChart = ({ data, centerValue, centerLabel }) => {
   const validData = data.filter(d => (d.value || d.count || 0) > 0);
   const displayData = validData.length > 0 ? validData : data;
   const total = displayData.reduce((sum, item) => sum + (item.value || item.count || 0), 0) || 1;
-  const cx = 90;
-  const cy = 90;
-  const outerR = 75;
-  const innerR = 48;
+  const cx = 85;
+  const cy = 85;
+  const outerR = 70;
+  const innerR = 44;
 
   let cumulativeAngle = 0;
 
@@ -250,9 +272,9 @@ const SVGDonutChart = ({ data, centerValue, centerLabel }) => {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-      <div style={{ position: 'relative', width: '180px', height: '180px' }}>
-        <svg width="180" height="180" viewBox="0 0 180 180">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '170px', height: '170px', flexShrink: 0 }}>
+        <svg width="170" height="170" viewBox="0 0 170 170" style={{ overflow: 'hidden' }}>
           {slices.map((slice, i) => (
             <path
               key={i}
@@ -273,18 +295,18 @@ const SVGDonutChart = ({ data, centerValue, centerLabel }) => {
           textAlign: 'center',
           pointerEvents: 'none'
         }}>
-          <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#0c5965' }}>{centerValue}</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0c5965' }}>{centerValue}</div>
           <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>{centerLabel}</div>
         </div>
       </div>
-      <div style={{ flex: 1, minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ flex: 1, minWidth: '130px', maxHeight: '170px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {slices.map((slice, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color || slice.fill || '#11b1c6' }}></span>
-              <span style={{ color: '#334155', fontWeight: 500 }}>{slice.name || slice.status}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color || slice.fill || '#11b1c6', flexShrink: 0 }}></span>
+              <span style={{ color: '#334155', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slice.name || slice.status}</span>
             </div>
-            <span style={{ fontWeight: 700, color: '#0c5965' }}>{slice.pct}%</span>
+            <span style={{ fontWeight: 700, color: '#0c5965', flexShrink: 0 }}>{slice.pct}%</span>
           </div>
         ))}
       </div>
@@ -303,32 +325,38 @@ const SVGLeadTimeHistogramChart = () => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
   const maxVal = 40;
-  const slotWidth = (width - padding * 2) / buckets.length;
+  const slotWidth = chartW / buckets.length;
   const barWidth = 32;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}</text>
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}</text>
           </g>
         );
       })}
 
       {buckets.map((b, i) => {
-        const barHeight = (b.count / maxVal) * (height - padding * 2);
-        const x = padding + i * slotWidth + (slotWidth - barWidth) / 2;
-        const y = height - padding - barHeight;
+        const barHeight = (b.count / maxVal) * chartH;
+        const x = paddingLeft + i * slotWidth + (slotWidth - barWidth) / 2;
+        const y = height - paddingBottom - barHeight;
+        const textY = Math.max(y - 5, 14);
 
         return (
           <g key={i}>
-            <rect x={x} y={y} width={barWidth} height={barHeight} rx="6" fill={b.color} />
-            <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{b.count}</text>
+            <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 4)} rx="5" fill={b.color} />
+            <text x={x + barWidth / 2} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{b.count}</text>
             <text x={x + barWidth / 2} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{b.label}</text>
           </g>
         );
@@ -339,16 +367,16 @@ const SVGLeadTimeHistogramChart = () => {
 
 const SVGBugDensityGaugeChart = () => {
   const slaRate = 94;
-  const cx = 90;
-  const cy = 90;
-  const r = 70;
+  const cx = 85;
+  const cy = 85;
+  const r = 65;
   const circumference = 2 * Math.PI * r;
   const strokeDashoffset = circumference - (slaRate / 100) * circumference;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-      <div style={{ position: 'relative', width: '180px', height: '180px' }}>
-        <svg width="180" height="180" viewBox="0 0 180 180">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '170px', height: '170px', flexShrink: 0 }}>
+        <svg width="170" height="170" viewBox="0 0 170 170" style={{ overflow: 'hidden' }}>
           <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e2e8f0" strokeWidth="14" />
           <circle
             cx={cx}
@@ -364,7 +392,7 @@ const SVGBugDensityGaugeChart = () => {
           />
         </svg>
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
-          <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#0c5965' }}>94%</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#0c5965' }}>94%</div>
           <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>SLA Score</div>
         </div>
       </div>
