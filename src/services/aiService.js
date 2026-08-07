@@ -1,11 +1,5 @@
 import api from './api';
 
-/**
- * TaskPulse AI Prediction & Recommendation Service
- * Bridges React Frontend -> Java Spring Boot (/api/v1/...) -> Python FastAPI AI Service (/ai/...)
- */
-
-// Helper to extract a clean numeric integer ID
 const sanitizeIntId = (id, fallback = 1) => {
   if (id === null || id === undefined) return fallback;
   const str = String(id).split(':')[0].replace(/[^0-9]/g, '');
@@ -13,7 +7,7 @@ const sanitizeIntId = (id, fallback = 1) => {
   return isNaN(parsed) ? fallback : parsed;
 };
 
-// 1. Predict Task Delay (POST /ai/predict/delay or GET /api/v1/predict-delay/task/{id})
+// 1. Predict Task Delay
 export const predictTaskDelay = async (params) => {
   const rawId = typeof params === 'object' && params !== null ? (params.task_id || params.id || '1') : params;
   const taskIdInt = sanitizeIntId(rawId, 1);
@@ -23,7 +17,6 @@ export const predictTaskDelay = async (params) => {
     try {
       res = await api.get(`/api/v1/predict-delay/task/${taskIdInt}`);
     } catch (javaError) {
-      // Python FastAPI payload matching DelayPredictionRequest Pydantic model
       const pythonPayload = {
         story_points: typeof params === 'object' ? (params.story_points ?? (params.estimated_hours ? params.estimated_hours / 2 : 5.0)) : 5.0,
         priority: typeof params === 'object' ? (params.priority || 'HIGH').toUpperCase() : 'HIGH',
@@ -47,7 +40,7 @@ export const predictTaskDelay = async (params) => {
   }
 };
 
-// 2. Score Employee Workload (POST /ai/predict/workload or GET /api/v1/workload-score/employee/{id})
+// 2. Workload Score
 export const predictWorkloadScore = async (params) => {
   const rawId = typeof params === 'object' && params !== null ? (params.employee_id || params.id || '101') : params;
   const empIdInt = sanitizeIntId(rawId, 101);
@@ -57,7 +50,6 @@ export const predictWorkloadScore = async (params) => {
     try {
       res = await api.get(`/api/v1/workload-score/employee/${empIdInt}`);
     } catch (javaError) {
-      // Python FastAPI payload matching WorkloadPredictionRequest Pydantic model
       const pythonPayload = {
         employee_id: empIdInt,
         active_tasks_count: typeof params === 'object' ? (params.active_tasks_count ?? 4) : 4,
@@ -83,7 +75,7 @@ export const predictWorkloadScore = async (params) => {
 
 export const scoreWorkload = predictWorkloadScore;
 
-// 3. Predict Sprint Risk (POST /ai/predict/sprint-risk or GET /api/v1/sprint-risk/sprint/{id})
+// 3. Sprint Risk
 export const predictSprintRisk = async (params) => {
   const rawId = typeof params === 'object' && params !== null ? (params.sprint_id || params.id || '1') : params;
   const sprintIdInt = sanitizeIntId(rawId, 1);
@@ -93,7 +85,6 @@ export const predictSprintRisk = async (params) => {
     try {
       res = await api.get(`/api/v1/sprint-risk/sprint/${sprintIdInt}`);
     } catch (javaError) {
-      // Python FastAPI payload matching SprintRiskRequest Pydantic model
       const pythonPayload = {
         sprint_id: sprintIdInt,
         total_story_points: typeof params === 'object' ? (params.total_story_points ?? 50.0) : 50.0,
@@ -121,7 +112,7 @@ export const predictSprintRisk = async (params) => {
   }
 };
 
-// 4. Recommend Employee (POST /ai/recommend/employee or POST /api/v1/recommend-employee)
+// 4. Recommend Employee
 export const recommendEmployee = async (params) => {
   const candidatesInput = (params && params.candidates && Array.isArray(params.candidates))
     ? params.candidates
@@ -135,13 +126,11 @@ export const recommendEmployee = async (params) => {
     active_tasks: parseInt(c.active_tasks ?? c.activeTasks ?? 2, 10)
   }));
 
-  // Standard fallback candidate if list is empty
   const candidates = formattedCandidates.length > 0 ? formattedCandidates : [
     { id: 1, name: 'Lead Developer', skills: ['Java', 'Spring Boot', 'React'], workload_score: 35.0, active_tasks: 2 },
     { id: 2, name: 'Senior Developer', skills: ['Java', 'Spring Boot', 'PostgreSQL'], workload_score: 50.0, active_tasks: 3 }
   ];
 
-  // Python FastAPI payload matching RecommendationRequest Pydantic model
   const pythonPayload = {
     task_title: (params && params.task_title) || (params && params.taskName) || 'Feature Task',
     required_skills: (params && params.required_skills && Array.isArray(params.required_skills) && params.required_skills.length > 0)
