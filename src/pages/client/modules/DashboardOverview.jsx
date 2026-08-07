@@ -22,26 +22,31 @@ const SVGProjectMilestoneChart = ({ data }) => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
   const maxVal = 100;
 
   const targetPoints = chartData.map((d, i) => {
-    const x = padding + (i / Math.max(chartData.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - (d.target / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(chartData.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.target / maxVal) * chartH;
     return `${x},${y}`;
   }).join(' ');
 
   const actualPoints = chartData.map((d, i) => {
-    const x = padding + (i / Math.max(chartData.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - (d.actual / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(chartData.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.actual / maxVal) * chartH;
     return { x, y, val: d.actual, label: d.label };
   });
 
   const actualLineD = actualPoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
-  const areaD = `${actualLineD} L ${actualPoints[actualPoints.length - 1].x} ${height - padding} L ${actualPoints[0].x} ${height - padding} Z`;
+  const areaD = `${actualLineD} L ${actualPoints[actualPoints.length - 1].x} ${height - paddingBottom} L ${actualPoints[0].x} ${height - paddingBottom} Z`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       <defs>
         <linearGradient id="clientProgressGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#11b1c6" stopOpacity="0.35" />
@@ -49,11 +54,11 @@ const SVGProjectMilestoneChart = ({ data }) => {
         </linearGradient>
       </defs>
       {[0, 25, 50, 75, 100].map((val, i) => {
-        const y = height - padding - (val / 100) * (height - padding * 2);
+        const y = height - paddingBottom - (val / 100) * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
               {val}%
             </text>
           </g>
@@ -64,13 +69,17 @@ const SVGProjectMilestoneChart = ({ data }) => {
       {/* Actual Progress Area & Line */}
       <path d={areaD} fill="url(#clientProgressGrad)" />
       <path d={actualLineD} fill="none" stroke="#11b1c6" strokeWidth="3" strokeLinecap="round" />
-      {actualPoints.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="4" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
-          <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{p.val}%</text>
-          <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{p.label}</text>
-        </g>
-      ))}
+      {actualPoints.map((p, i) => {
+        const textY = Math.max(p.y - 8, 14);
+        const lbl = (p.label || '').length > 8 ? (p.label || '').slice(0, 7) + '…' : p.label;
+        return (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
+            <text x={p.x} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{p.val}%</text>
+            <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{lbl}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 };
@@ -88,7 +97,7 @@ const SVGTaskStatusDistribution = ({ statusCounts }) => {
   const total = statuses.reduce((sum, s) => sum + s.count, 0) || 1;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px', overflow: 'hidden' }}>
       {/* Visual Stacked Progress Bar */}
       <div style={{ width: '100%', height: '16px', background: '#f1f5f9', borderRadius: '8px', display: 'flex', overflow: 'hidden' }}>
         {statuses.map((st, i) => {
@@ -107,10 +116,10 @@ const SVGTaskStatusDistribution = ({ statusCounts }) => {
       {/* Legend Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', marginTop: '6px' }}>
         {statuses.map((st, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: '#f8fafc', borderRadius: '8px' }}>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', background: '#f8fafc', borderRadius: '8px', overflow: 'hidden' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: st.color, flexShrink: 0 }}></span>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{st.label}</span>
+            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.label}</span>
               <span style={{ fontSize: '0.9rem', color: '#0c5965', fontWeight: 700 }}>{st.count} ({Math.round((st.count / total) * 100)}%)</span>
             </div>
           </div>
@@ -132,13 +141,13 @@ const SVGPriorityAllocationChart = ({ priorityCounts }) => {
   const maxVal = Math.max(...priorities.map(p => p.count), 1);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '10px', overflow: 'hidden' }}>
       {priorities.map((p, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ width: '110px', fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>{p.label}</span>
-          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '3px', border: '1px solid #f1f5f9' }}>
+          <span style={{ width: '110px', fontSize: '0.8rem', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.label}</span>
+          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '3px', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
             <div style={{
-              width: `${Math.max((p.count / maxVal) * 100, 8)}%`,
+              width: `${Math.min(Math.max((p.count / maxVal) * 100, 8), 100)}%`,
               height: '22px',
               background: p.color,
               borderRadius: '6px',

@@ -15,10 +15,10 @@ const SVGEmployeeEffortDonut = () => {
   ];
 
   const total = 100;
-  const cx = 90;
-  const cy = 90;
-  const outerR = 75;
-  const innerR = 48;
+  const cx = 85;
+  const cy = 85;
+  const outerR = 70;
+  const innerR = 44;
   let cumulativeAngle = 0;
 
   const slices = data.map(item => {
@@ -47,9 +47,9 @@ const SVGEmployeeEffortDonut = () => {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-      <div style={{ position: 'relative', width: '180px', height: '180px' }}>
-        <svg width="180" height="180" viewBox="0 0 180 180">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '170px', height: '170px', flexShrink: 0 }}>
+        <svg width="170" height="170" viewBox="0 0 170 170" style={{ overflow: 'hidden' }}>
           {slices.map((slice, i) => (
             <path key={i} d={slice.pathData} fill={slice.color} stroke="#ffffff" strokeWidth="2">
               <title>{`${slice.label}: ${slice.value}%`}</title>
@@ -61,14 +61,14 @@ const SVGEmployeeEffortDonut = () => {
           <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>Focus</div>
         </div>
       </div>
-      <div style={{ flex: 1, minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ flex: 1, minWidth: '130px', maxHeight: '170px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {slices.map((slice, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color }}></span>
-              <span style={{ color: '#334155', fontWeight: 500 }}>{slice.label}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color, flexShrink: 0 }}></span>
+              <span style={{ color: '#334155', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slice.label}</span>
             </div>
-            <span style={{ fontWeight: 700, color: '#0c5965' }}>{slice.value}%</span>
+            <span style={{ fontWeight: 700, color: '#0c5965', flexShrink: 0 }}>{slice.value}%</span>
           </div>
         ))}
       </div>
@@ -88,35 +88,41 @@ const SVGDailyWorklogBar = () => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
   const maxVal = 10;
-  const slotWidth = (width - padding * 2) / days.length;
+  const slotWidth = chartW / days.length;
   const barWidth = 32;
-  const targetY = height - padding - (8.0 / maxVal) * (height - padding * 2);
+  const targetY = height - paddingBottom - (8.0 / maxVal) * chartH;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}h</text>
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}h</text>
           </g>
         );
       })}
-      <line x1={padding} y1={targetY} x2={width - padding} y2={targetY} stroke="#ef4444" strokeDasharray="4 4" strokeWidth="1.5" />
-      <text x={width - padding + 5} y={targetY + 3} fontSize="9" fontWeight="bold" fill="#ef4444">8h Target</text>
+      <line x1={paddingLeft} y1={targetY} x2={width - paddingRight} y2={targetY} stroke="#ef4444" strokeDasharray="4 4" strokeWidth="1.5" />
+      <text x={width - paddingRight - 5} y={targetY - 4} textAnchor="end" fontSize="9" fontWeight="bold" fill="#ef4444">8h Target</text>
 
       {days.map((d, i) => {
-        const barHeight = (d.hours / maxVal) * (height - padding * 2);
-        const x = padding + i * slotWidth + (slotWidth - barWidth) / 2;
-        const y = height - padding - barHeight;
+        const barHeight = (d.hours / maxVal) * chartH;
+        const x = paddingLeft + i * slotWidth + (slotWidth - barWidth) / 2;
+        const y = height - paddingBottom - barHeight;
+        const textY = Math.max(y - 5, 14);
 
         return (
           <g key={i}>
-            <rect x={x} y={y} width={barWidth} height={barHeight} rx="6" fill={d.hours >= 8 ? '#059669' : '#11b1c6'} />
-            <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{d.hours}h</text>
+            <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 4)} rx="5" fill={d.hours >= 8 ? '#059669' : '#11b1c6'} />
+            <text x={x + barWidth / 2} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{d.hours}h</text>
             <text x={x + barWidth / 2} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{d.day}</text>
           </g>
         );
@@ -136,20 +142,25 @@ const SVGEmployeeVelocitySparkline = () => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
   const maxVal = 15;
 
   const points = trend.map((d, i) => {
-    const x = padding + (i / (trend.length - 1)) * (width - padding * 2);
-    const y = height - padding - (d.completed / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(trend.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.completed / maxVal) * chartH;
     return { x, y, val: d.completed, week: d.week };
   });
 
   const lineD = points.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
-  const areaD = `${lineD} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`;
+  const areaD = `${lineD} L ${points[points.length - 1].x} ${height - paddingBottom} L ${points[0].x} ${height - paddingBottom} Z`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       <defs>
         <linearGradient id="empVelGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#059669" stopOpacity="0.35" />
@@ -157,23 +168,26 @@ const SVGEmployeeVelocitySparkline = () => {
         </linearGradient>
       </defs>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}</text>
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}</text>
           </g>
         );
       })}
       <path d={areaD} fill="url(#empVelGrad)" />
       <path d={lineD} fill="none" stroke="#059669" strokeWidth="3" strokeLinecap="round" />
-      {points.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="5" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
-          <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#059669">+{p.val} Tasks</text>
-          <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{p.week}</text>
-        </g>
-      ))}
+      {points.map((p, i) => {
+        const textY = Math.max(p.y - 8, 14);
+        return (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
+            <text x={p.x} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#059669">+{p.val}</text>
+            <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{p.week}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 };
@@ -188,7 +202,7 @@ const SVGSkillProficiencyMeter = () => {
   ];
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', paddingTop: '10px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', paddingTop: '10px', overflow: 'hidden' }}>
       {skills.map((s, idx) => (
         <div key={idx} style={{
           padding: '14px',
@@ -197,15 +211,16 @@ const SVGSkillProficiencyMeter = () => {
           border: '1px solid rgba(17, 177, 198, 0.15)',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          overflow: 'hidden'
         }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>{s.name}</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</span>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '8px 0' }}>
             <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#0c5965' }}>{s.score}%</span>
-            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: s.color, background: `${s.color}18`, padding: '2px 8px', borderRadius: '10px' }}>Expert</span>
+            <span style={{ fontSize: '0.7rem', fontWeight: 700, color: s.color, background: `${s.color}18`, padding: '2px 8px', borderRadius: '10px', flexShrink: 0 }}>Expert</span>
           </div>
           <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{ width: `${s.score}%`, height: '100%', background: s.color, borderRadius: '3px' }}></div>
+            <div style={{ width: `${Math.min(Math.max(s.score, 0), 100)}%`, height: '100%', background: s.color, borderRadius: '3px' }}></div>
           </div>
         </div>
       ))}
@@ -224,18 +239,23 @@ const SVGOvertimeTrendChart = () => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
   const maxVal = 50;
 
   const stdPoints = weeks.map((d, i) => {
-    const x = padding + (i / (weeks.length - 1)) * (width - padding * 2);
-    const y = height - padding - (d.standard / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(weeks.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.standard / maxVal) * chartH;
     return { x, y, val: d.standard, week: d.week };
   });
 
   const otPoints = weeks.map((d, i) => {
-    const x = padding + (i / (weeks.length - 1)) * (width - padding * 2);
-    const y = height - padding - (d.overtime / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(weeks.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.overtime / maxVal) * chartH;
     return { x, y, val: d.overtime };
   });
 
@@ -243,25 +263,28 @@ const SVGOvertimeTrendChart = () => {
   const otLineD = otPoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}h</text>
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}h</text>
           </g>
         );
       })}
       <path d={stdLineD} fill="none" stroke="#11b1c6" strokeWidth="2.5" />
       <path d={otLineD} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="4 4" />
-      {otPoints.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="4" fill="#f59e0b" stroke="#ffffff" strokeWidth="2" />
-          <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#f59e0b">+{p.val}h OT</text>
-          <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{stdPoints[i].week}</text>
-        </g>
-      ))}
+      {otPoints.map((p, i) => {
+        const textY = Math.max(p.y - 8, 14);
+        return (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#f59e0b" stroke="#ffffff" strokeWidth="2" />
+            <text x={p.x} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#f59e0b">+{p.val}h</text>
+            <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{stdPoints[i].week}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 };

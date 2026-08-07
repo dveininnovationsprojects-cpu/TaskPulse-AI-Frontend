@@ -17,26 +17,34 @@ const SVGBurndownChart = ({ data }) => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
+
   const maxVal = Math.max(...burndownData.map(d => Math.max(d.ideal, d.actual)), 10);
 
   const idealPoints = burndownData.map((d, i) => {
-    const x = padding + (i / Math.max(burndownData.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - (d.ideal / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(burndownData.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.ideal / maxVal) * chartH;
     return `${x},${y}`;
   }).join(' ');
 
   const actualPoints = burndownData.map((d, i) => {
-    const x = padding + (i / Math.max(burndownData.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - (d.actual / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(burndownData.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.actual / maxVal) * chartH;
     return { x, y, val: d.actual, day: d.day };
   });
 
   const actualLineD = actualPoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
-  const areaD = `${actualLineD} L ${actualPoints[actualPoints.length - 1].x} ${height - padding} L ${actualPoints[0].x} ${height - padding} Z`;
+  const areaD = `${actualLineD} L ${actualPoints[actualPoints.length - 1].x} ${height - paddingBottom} L ${actualPoints[0].x} ${height - paddingBottom} Z`;
+
+  const formatVal = (v) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       <defs>
         <linearGradient id="mgrBurnGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#11b1c6" stopOpacity="0.35" />
@@ -44,12 +52,12 @@ const SVGBurndownChart = ({ data }) => {
         </linearGradient>
       </defs>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
-              {Math.round(maxVal * pct)}
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+              {formatVal(Math.round(maxVal * pct))}
             </text>
           </g>
         );
@@ -59,13 +67,17 @@ const SVGBurndownChart = ({ data }) => {
       {/* Actual Area & Line */}
       <path d={areaD} fill="url(#mgrBurnGrad)" />
       <path d={actualLineD} fill="none" stroke="#11b1c6" strokeWidth="3" strokeLinecap="round" />
-      {actualPoints.map((p, i) => (
-        <g key={i}>
-          <circle cx={p.x} cy={p.y} r="4" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
-          <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{p.val}</text>
-          <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{p.day}</text>
-        </g>
-      ))}
+      {actualPoints.map((p, i) => {
+        const textY = Math.max(p.y - 8, 14);
+        const dayLbl = (p.day || '').length > 8 ? (p.day || '').slice(0, 7) + '…' : p.day;
+        return (
+          <g key={i}>
+            <circle cx={p.x} cy={p.y} r="4" fill="#0c5965" stroke="#ffffff" strokeWidth="2" />
+            <text x={p.x} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#0c5965">{formatVal(p.val)}</text>
+            <text x={p.x} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{dayLbl}</text>
+          </g>
+        );
+      })}
     </svg>
   );
 };
@@ -81,7 +93,7 @@ const SVGTeamWorkloadChart = ({ teamData }) => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '5px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '5px', overflow: 'hidden' }}>
       {members.map((m, i) => {
         const total = m.done + m.inProgress + m.todo || 1;
         const donePct = (m.done / total) * 100;
@@ -121,19 +133,19 @@ const SVGWorkflowFunnelChart = ({ stagesData, avgCycleTime }) => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingTop: '10px', overflow: 'hidden' }}>
       {stages.map((st, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ width: '135px', fontSize: '0.78rem', color: '#64748b', fontWeight: 500 }}>{st.label}</span>
-          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '3px', border: '1px solid #f1f5f9' }}>
+          <span style={{ width: '135px', fontSize: '0.78rem', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{st.label}</span>
+          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '3px', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
             <div style={{
-              width: `${Math.max(st.pct, 10)}%`,
+              width: `${Math.min(Math.max(st.pct, 10), 100)}%`,
               height: '24px',
               background: st.color,
               borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
-              justify: 'flex-end',
+              justifyContent: 'flex-end',
               paddingRight: '10px',
               transition: 'width 0.4s ease'
             }}>
@@ -159,7 +171,7 @@ const SVGPriorityHeatmapChart = ({ priorityCounts, riskPct, blockerCount }) => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '10px', overflow: 'hidden' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {priorities.map((p, i) => (
           <div key={i} style={{
@@ -169,10 +181,11 @@ const SVGPriorityHeatmapChart = ({ priorityCounts, riskPct, blockerCount }) => {
             border: `1.5px solid ${p.color}`,
             display: 'flex',
             alignItems: 'center',
-            justify: 'space-between'
+            justifyContent: 'space-between',
+            overflow: 'hidden'
           }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{p.label}</div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.label}</div>
               <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0c5965', marginTop: '2px' }}>{p.count}</div>
             </div>
             <div style={{
@@ -182,19 +195,20 @@ const SVGPriorityHeatmapChart = ({ priorityCounts, riskPct, blockerCount }) => {
               background: `${p.color}18`,
               display: 'flex',
               alignItems: 'center',
-              justify: 'center',
+              justifyContent: 'center',
               fontSize: '0.78rem',
               fontWeight: 700,
-              color: p.color
+              color: p.color,
+              flexShrink: 0
             }}>
               {p.pct}%
             </div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: '#fff7ed', borderRadius: '12px', border: '1px solid #ffedd5' }}>
-        <ShieldAlert size={18} style={{ color: '#f59e0b' }} />
-        <span style={{ fontSize: '0.78rem', color: '#9a3412', fontWeight: 500 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: '#fff7ed', borderRadius: '12px', border: '1px solid #ffedd5', overflow: 'hidden' }}>
+        <ShieldAlert size={18} style={{ color: '#f59e0b', flexShrink: 0 }} />
+        <span style={{ fontSize: '0.78rem', color: '#9a3412', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           Sprint Risk Status: <b>{riskPct !== undefined ? `${riskPct}% On Track` : '85% On Track'}</b> ({blockerCount !== undefined ? blockerCount : 1} Blocker Pending)
         </span>
       </div>
@@ -213,14 +227,14 @@ const SVGBlockerResolutionSpeedChart = ({ blockerData }) => {
   const maxHours = Math.max(...members.map(m => m.hours), 5);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '10px', overflow: 'hidden' }}>
       {members.map((m, idx) => (
         <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ width: '90px', fontSize: '0.8rem', fontWeight: 600, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
           <div style={{ flex: 1, height: '14px', background: '#f1f5f9', borderRadius: '7px', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.max((m.hours / maxHours) * 100, 8)}%`, height: '100%', background: m.color, borderRadius: '7px' }}></div>
+            <div style={{ width: `${Math.min(Math.max((m.hours / maxHours) * 100, 8), 100)}%`, height: '100%', background: m.color, borderRadius: '7px' }}></div>
           </div>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0c5965', width: '45px', textAlign: 'right' }}>{m.hours}h</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0c5965', width: '45px', textAlign: 'right', flexShrink: 0 }}>{m.hours}h</span>
         </div>
       ))}
     </div>
@@ -237,32 +251,40 @@ const SVGPRTurnaroundChart = ({ weeklyData }) => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
+
   const maxVal = Math.max(...weeks.map(d => Math.max(d.opened, d.merged)), 10);
 
   const openPoints = weeks.map((d, i) => {
-    const x = padding + (i / Math.max(weeks.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - (d.opened / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(weeks.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.opened / maxVal) * chartH;
     return { x, y, val: d.opened, week: d.week };
   });
 
   const mergedPoints = weeks.map((d, i) => {
-    const x = padding + (i / Math.max(weeks.length - 1, 1)) * (width - padding * 2);
-    const y = height - padding - (d.merged / maxVal) * (height - padding * 2);
+    const x = paddingLeft + (i / Math.max(weeks.length - 1, 1)) * chartW;
+    const y = height - paddingBottom - (d.merged / maxVal) * chartH;
     return { x, y, val: d.merged };
   });
 
   const openLineD = openPoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
   const mergedLineD = mergedPoints.reduce((acc, p, i) => i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
 
+  const formatVal = (v) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}</text>
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{formatVal(Math.round(maxVal * pct))}</text>
           </g>
         );
       })}

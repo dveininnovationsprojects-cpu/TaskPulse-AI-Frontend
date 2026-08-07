@@ -15,7 +15,12 @@ const SVGWaterfallChart = ({ data }) => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
 
   let cumulative = 0;
   const chartItems = chartData.map((item) => {
@@ -31,29 +36,33 @@ const SVGWaterfallChart = ({ data }) => {
   });
 
   const maxVal = Math.max(...chartItems.map(d => Math.max(d.start, d.end)), 10);
-  const slotWidth = (width - padding * 2) / chartItems.length;
+  const slotWidth = chartW / chartItems.length;
   const barWidth = Math.min(32, slotWidth * 0.7);
 
+  const formatVal = (v) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
-              {Math.round(maxVal * pct)}
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" strokeDasharray="3 3" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+              {formatVal(Math.round(maxVal * pct))}
             </text>
           </g>
         );
       })}
 
       {chartItems.map((d, i) => {
-        const x = padding + i * slotWidth + (slotWidth - barWidth) / 2;
-        const startY = height - padding - (d.start / maxVal) * (height - padding * 2);
-        const endY = height - padding - (d.end / maxVal) * (height - padding * 2);
+        const x = paddingLeft + i * slotWidth + (slotWidth - barWidth) / 2;
+        const startY = height - paddingBottom - (d.start / maxVal) * chartH;
+        const endY = height - paddingBottom - (d.end / maxVal) * chartH;
         const barY = Math.min(startY, endY);
         const barH = Math.max(Math.abs(startY - endY), 4);
+        const textY = Math.max(barY - 5, 14);
+        const lbl = (d.label || '').length > 7 ? (d.label || '').slice(0, 6) + '…' : (d.label || '');
 
         let color = '#059669'; // Green gain
         if (d.val < 0) color = '#ef4444'; // Red decrease
@@ -62,14 +71,14 @@ const SVGWaterfallChart = ({ data }) => {
         return (
           <g key={i}>
             <rect x={x} y={barY} width={barWidth} height={barH} rx="5" fill={color} />
-            <text x={x + barWidth / 2} y={barY - 6} textAnchor="middle" fontSize="10" fontWeight="bold" fill={color}>
-              {d.val > 0 && d.type !== 'total' ? `+${d.val}` : d.val}
+            <text x={x + barWidth / 2} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill={color}>
+              {d.val > 0 && d.type !== 'total' ? `+${formatVal(d.val)}` : formatVal(d.val)}
             </text>
             <text x={x + barWidth / 2} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">
-              {d.label}
+              {lbl}
             </text>
             {i < chartItems.length - 1 && (
-              <line x1={x + barWidth} y1={endY} x2={padding + (i + 1) * slotWidth + (slotWidth - barWidth) / 2} y2={endY} stroke="#cbd5e1" strokeDasharray="2 2" />
+              <line x1={x + barWidth} y1={endY} x2={paddingLeft + (i + 1) * slotWidth + (slotWidth - barWidth) / 2} y2={endY} stroke="#cbd5e1" strokeDasharray="2 2" />
             )}
           </g>
         );
@@ -96,15 +105,16 @@ const SVGMetricScorecardChart = ({ metrics }) => {
           border: '1px solid rgba(17, 177, 198, 0.15)',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          overflow: 'hidden'
         }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>{m.title}</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</span>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '8px 0' }}>
             <span style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#0c5965' }}>{m.value}</span>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: m.changeColor || '#059669' }}>{m.change}</span>
           </div>
           <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{ width: `${m.progress || 80}%`, height: '100%', background: m.barColor || 'linear-gradient(90deg, #11b1c6, #059669)', borderRadius: '3px' }}></div>
+            <div style={{ width: `${Math.min(Math.max(m.progress || 80, 0), 100)}%`, height: '100%', background: m.barColor || 'linear-gradient(90deg, #11b1c6, #059669)', borderRadius: '3px' }}></div>
           </div>
         </div>
       ))}
@@ -113,7 +123,7 @@ const SVGMetricScorecardChart = ({ metrics }) => {
 };
 
 const SVGBarChart = ({ data }) => {
-  const sliceData = (data && data.length > 0) ? data.slice(0, 6) : [
+  const sliceData = (data && data.length > 0) ? data.slice(0, 8) : [
     { label: 'E-Commerce', value: 65 },
     { label: 'AI Portal', value: 85 },
     { label: 'Mobile App', value: 45 },
@@ -122,12 +132,21 @@ const SVGBarChart = ({ data }) => {
   ];
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
+
   const maxVal = Math.max(...sliceData.map(d => d.value || d.count || 1), 5);
-  const barWidth = Math.min(36, (width - padding * 2) / (sliceData.length * 1.8));
+  const slotWidth = chartW / sliceData.length;
+  const barWidth = Math.min(32, slotWidth * 0.65);
+
+  const formatVal = (v) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       <defs>
         <linearGradient id="execBarGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#11b1c6" />
@@ -135,28 +154,29 @@ const SVGBarChart = ({ data }) => {
         </linearGradient>
       </defs>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
-              {Math.round(maxVal * pct)}
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+              {formatVal(Math.round(maxVal * pct))}
             </text>
           </g>
         );
       })}
       {sliceData.map((d, i) => {
         const val = d.value || d.count || 0;
-        const barHeight = (val / maxVal) * (height - padding * 2);
-        const slotWidth = (width - padding * 2) / sliceData.length;
-        const x = padding + i * slotWidth + (slotWidth - barWidth) / 2;
-        const y = height - padding - barHeight;
-        const name = (d.label || d.name || `Proj ${i+1}`).split(' ')[0];
+        const barHeight = (val / maxVal) * chartH;
+        const x = paddingLeft + i * slotWidth + (slotWidth - barWidth) / 2;
+        const y = height - paddingBottom - barHeight;
+        const rawName = (d.label || d.name || `Proj ${i+1}`).split(' ')[0];
+        const name = rawName.length > 7 ? rawName.slice(0, 6) + '…' : rawName;
+        const textY = Math.max(y - 5, 14);
 
         return (
           <g key={i}>
-            <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 4)} rx="6" fill="url(#execBarGrad)" />
-            <text x={x + barWidth / 2} y={y - 6} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#059669">{val}</text>
+            <rect x={x} y={y} width={barWidth} height={Math.max(barHeight, 4)} rx="5" fill="url(#execBarGrad)" />
+            <text x={x + barWidth / 2} y={textY} textAnchor="middle" fontSize="10" fontWeight="bold" fill="#059669">{formatVal(val)}</text>
             <text x={x + barWidth / 2} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{name}</text>
           </g>
         );
@@ -174,10 +194,10 @@ const SVGDonutChart = ({ data, centerValue, centerLabel }) => {
     { name: 'Operations', value: 8, color: '#8b5cf6' }
   ];
   const total = displayData.reduce((sum, item) => sum + (item.value || item.count || 0), 0) || 1;
-  const cx = 90;
-  const cy = 90;
-  const outerR = 75;
-  const innerR = 48;
+  const cx = 85;
+  const cy = 85;
+  const outerR = 70;
+  const innerR = 44;
 
   let cumulativeAngle = 0;
 
@@ -214,9 +234,9 @@ const SVGDonutChart = ({ data, centerValue, centerLabel }) => {
   });
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
-      <div style={{ position: 'relative', width: '180px', height: '180px' }}>
-        <svg width="180" height="180" viewBox="0 0 180 180">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', width: '100%', overflow: 'hidden' }}>
+      <div style={{ position: 'relative', width: '170px', height: '170px', flexShrink: 0 }}>
+        <svg width="170" height="170" viewBox="0 0 170 170" style={{ overflow: 'hidden' }}>
           {slices.map((slice, i) => (
             <path
               key={i}
@@ -237,18 +257,18 @@ const SVGDonutChart = ({ data, centerValue, centerLabel }) => {
           textAlign: 'center',
           pointerEvents: 'none'
         }}>
-          <div style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#0c5965' }}>{centerValue || '100%'}</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#0c5965' }}>{centerValue || '100%'}</div>
           <div style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>{centerLabel || 'Capacity'}</div>
         </div>
       </div>
-      <div style={{ flex: 1, minWidth: '130px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ flex: 1, minWidth: '130px', maxHeight: '170px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {slices.map((slice, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color || slice.fill || '#11b1c6' }}></span>
-              <span style={{ color: '#334155', fontWeight: 500 }}>{slice.name || slice.status}</span>
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.82rem', gap: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: slice.color || slice.fill || '#11b1c6', flexShrink: 0 }}></span>
+              <span style={{ color: '#334155', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slice.name || slice.status}</span>
             </div>
-            <span style={{ fontWeight: 700, color: '#0c5965' }}>{slice.pct}%</span>
+            <span style={{ fontWeight: 700, color: '#0c5965', flexShrink: 0 }}>{slice.pct}%</span>
           </div>
         ))}
       </div>
@@ -266,33 +286,41 @@ const SVGQuarterlyBudgetChart = ({ quartersData }) => {
 
   const width = 450;
   const height = 180;
-  const padding = 35;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
+
   const maxVal = Math.max(...quarters.map(q => Math.max(q.budget, q.actual)), 50);
-  const slotWidth = (width - padding * 2) / quarters.length;
-  const barW = 16;
+  const slotWidth = chartW / quarters.length;
+  const barW = Math.min(16, slotWidth * 0.35);
+
+  const formatVal = (v) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : v;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'hidden', display: 'block' }}>
       {[0, 0.5, 1].map((pct, i) => {
-        const y = height - padding - pct * (height - padding * 2);
+        const y = height - paddingBottom - pct * chartH;
         return (
           <g key={i}>
-            <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#f1f5f9" />
-            <text x={padding - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{Math.round(maxVal * pct)}h</text>
+            <line x1={paddingLeft} y1={y} x2={width - paddingRight} y2={y} stroke="#f1f5f9" />
+            <text x={paddingLeft - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#94a3b8">{formatVal(Math.round(maxVal * pct))}h</text>
           </g>
         );
       })}
       {quarters.map((q, i) => {
-        const bH = (q.budget / maxVal) * (height - padding * 2);
-        const aH = (q.actual / maxVal) * (height - padding * 2);
-        const baseX = padding + i * slotWidth + (slotWidth - (barW * 2 + 6)) / 2;
-        const bY = height - padding - bH;
-        const aY = height - padding - aH;
+        const bH = (q.budget / maxVal) * chartH;
+        const aH = (q.actual / maxVal) * chartH;
+        const baseX = paddingLeft + i * slotWidth + (slotWidth - (barW * 2 + 6)) / 2;
+        const bY = height - paddingBottom - bH;
+        const aY = height - paddingBottom - aH;
 
         return (
           <g key={i}>
-            <rect x={baseX} y={bY} width={barW} height={bH} rx="4" fill="#11b1c6" />
-            <rect x={baseX + barW + 6} y={aY} width={barW} height={aH} rx="4" fill="#059669" />
+            <rect x={baseX} y={bY} width={barW} height={Math.max(bH, 4)} rx="4" fill="#11b1c6" />
+            <rect x={baseX + barW + 6} y={aY} width={barW} height={Math.max(aH, 4)} rx="4" fill="#059669" />
             <text x={baseX + barW + 3} y={height - 10} textAnchor="middle" fontSize="10" fill="#64748b">{q.q}</text>
           </g>
         );
