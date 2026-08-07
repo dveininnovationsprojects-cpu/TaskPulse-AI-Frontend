@@ -6,6 +6,7 @@ import SprintsModule from './modules/SprintsModule';
 import TasksModule from './modules/TasksModule';
 import BlockersModule from './modules/BlockersModule';
 import ActivitiesModule from '../../components/ActivitiesModule';
+import AIPredictionsModule from '../ai-predictions/AIPredictionsModule';
 
 const leadModules = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -14,6 +15,7 @@ const leadModules = [
   { id: 'tasks', label: 'Tasks' },
   { id: 'blockers', label: 'Blockers' },
   { id: 'activities', label: 'Activities' },
+  { id: 'ai-predictions', label: 'AI Predictions' },
 ];
 
 const LeadDashboard = () => {
@@ -27,6 +29,7 @@ const LeadDashboard = () => {
       case 'tasks': return <TasksModule />;
       case 'blockers': return <BlockersModule />;
       case 'activities': return <ActivitiesModule />;
+      case 'ai-predictions': return <AIPredictionsModule />;
       default: return <DashboardOverview />;
     }
   };

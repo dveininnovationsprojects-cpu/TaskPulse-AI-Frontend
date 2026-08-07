@@ -5,6 +5,7 @@ import EmployeesModule from './modules/EmployeesModule';
 import ProjectsModule from './modules/ProjectsModule';
 import SprintsModule from './modules/SprintsModule';
 import ActivitiesModule from '../../components/ActivitiesModule';
+import AIPredictionsModule from '../ai-predictions/AIPredictionsModule';
 
 const adminModules = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -12,6 +13,7 @@ const adminModules = [
   { id: 'projects', label: 'Projects' },
   { id: 'sprints', label: 'Sprints' },
   { id: 'activities', label: 'Activities' },
+  { id: 'ai-predictions', label: 'AI Predictions' },
 ];
 
 const AdminDashboard = () => {
@@ -24,6 +26,7 @@ const AdminDashboard = () => {
       case 'projects': return <ProjectsModule />;
       case 'sprints': return <SprintsModule />;
       case 'activities': return <ActivitiesModule />;
+      case 'ai-predictions': return <AIPredictionsModule />;
       default: return <DashboardOverview />;
     }
   };

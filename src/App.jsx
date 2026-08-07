@@ -9,11 +9,18 @@ import DeveloperDashboard from './pages/developer/DeveloperDashboard';
 import DataAnalystDashboard from './pages/analyst/AnalystDashboard';
 import ClientViewerDashboard from './pages/client/ClientDashboard';
 
-// A simple PrivateRoute that redirects to login if no token is found.
-// Note: Actual role validation should ideally happen here or in the backend.
-const PrivateRoute = ({ children }) => {
+// Requires a token, and (when `role` is given) requires the logged-in user's
+// role to match the route — otherwise they're sent to their own dashboard
+// instead of rendering a dashboard built for a different role's permissions.
+const PrivateRoute = ({ children, role }) => {
   const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/login" replace />;
+
+  const currentRole = localStorage.getItem('role');
+  if (role && currentRole && currentRole !== role) {
+    return <Navigate to={`/dashboard/${currentRole.toLowerCase()}`} replace />;
+  }
+  return children;
 };
 
 const RootRedirect = () => {
@@ -34,22 +41,22 @@ function App() {
         <Route path="/register" element={<Register />} />
         
         <Route path="/dashboard/admin" element={
-          <PrivateRoute><AdminDashboard /></PrivateRoute>
+          <PrivateRoute role="ADMIN"><AdminDashboard /></PrivateRoute>
         } />
         <Route path="/dashboard/project_manager" element={
-          <PrivateRoute><ProjectManagerDashboard /></PrivateRoute>
+          <PrivateRoute role="PROJECT_MANAGER"><ProjectManagerDashboard /></PrivateRoute>
         } />
         <Route path="/dashboard/team_lead" element={
-          <PrivateRoute><TeamLeadDashboard /></PrivateRoute>
+          <PrivateRoute role="TEAM_LEAD"><TeamLeadDashboard /></PrivateRoute>
         } />
         <Route path="/dashboard/developer" element={
-          <PrivateRoute><DeveloperDashboard /></PrivateRoute>
+          <PrivateRoute role="DEVELOPER"><DeveloperDashboard /></PrivateRoute>
         } />
         <Route path="/dashboard/data_analyst" element={
-          <PrivateRoute><DataAnalystDashboard /></PrivateRoute>
+          <PrivateRoute role="DATA_ANALYST"><DataAnalystDashboard /></PrivateRoute>
         } />
         <Route path="/dashboard/client_viewer" element={
-          <PrivateRoute><ClientViewerDashboard /></PrivateRoute>
+          <PrivateRoute role="CLIENT_VIEWER"><ClientViewerDashboard /></PrivateRoute>
         } />
         
         {/* Default fallback route */}

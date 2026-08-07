@@ -122,11 +122,11 @@ const ProjectsManagement = ({ role }) => {
   const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
   const priorityDropdownRef = useRef(null);
 
-  // Authorization checks
+  // Authorization checks — Admin and Project Manager both get full CRUD on Projects per the access matrix
   const isAdmin = role === 'ADMIN';
   const isPM = role === 'PROJECT_MANAGER';
   const canEdit = isAdmin || isPM;
-  const canDelete = isAdmin;
+  const canDelete = isAdmin || isPM;
 
   useEffect(() => {
     fetchData();

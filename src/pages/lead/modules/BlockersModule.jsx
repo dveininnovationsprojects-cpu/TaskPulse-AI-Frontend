@@ -233,27 +233,29 @@ const BlockersModule = () => {
                   )}
                 </div>
 
-                <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(226, 232, 240, 0.6)' }}>
-                  <button 
-                    className="btn-pill" 
-                    style={{ 
-                      width: '100%', 
-                      margin: 0, 
-                      padding: '10px 18px', 
-                      background: 'linear-gradient(135deg, #11b1c6 0%, #0c5965 100%)', 
-                      color: 'white', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '8px', 
-                      boxShadow: '0 6px 20px rgba(17, 177, 198, 0.25)', 
-                      border: 'none'
-                    }}
-                    onClick={() => setConfirmResolveBlocker(b)}
-                  >
-                    <CheckCircle2 size={16} /> Mark Blocker Resolved
-                  </button>
-                </div>
+                {currentUser?.role !== 'DEVELOPER' && (
+                  <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(226, 232, 240, 0.6)' }}>
+                    <button
+                      className="btn-pill"
+                      style={{
+                        width: '100%',
+                        margin: 0,
+                        padding: '10px 18px',
+                        background: 'linear-gradient(135deg, #11b1c6 0%, #0c5965 100%)',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 6px 20px rgba(17, 177, 198, 0.25)',
+                        border: 'none'
+                      }}
+                      onClick={() => setConfirmResolveBlocker(b)}
+                    >
+                      <CheckCircle2 size={16} /> Mark Blocker Resolved
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
