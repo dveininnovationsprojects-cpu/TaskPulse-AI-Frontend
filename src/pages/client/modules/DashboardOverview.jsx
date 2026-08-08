@@ -214,9 +214,9 @@ const DashboardOverview = () => {
       let projList = normalizeArray(projRes.data);
       const rawBlockers = normalizeArray(blockersRes.data);
 
-      // If user has a specific assigned project ID saved in localStorage
+      // Fallback: If projList is empty, check localStorage for assignedProjectId or registeredProjectId
       if (projList.length === 0) {
-        const storedId = localStorage.getItem('projectId') || localStorage.getItem('registeredProjectId');
+        const storedId = localStorage.getItem('assignedProjectId') || localStorage.getItem('registeredProjectId') || localStorage.getItem('projectId');
         if (storedId) {
           try {
             const specRes = await api.get(`/api/projects/${storedId}`);

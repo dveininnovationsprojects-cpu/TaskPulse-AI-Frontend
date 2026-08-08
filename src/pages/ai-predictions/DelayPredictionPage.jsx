@@ -75,7 +75,6 @@ const DelayPredictionPage = ({ onBack }) => {
           <select
             value={selectedProjectId}
             onChange={(e) => setSelectedProjectId(e.target.value)}
-            style={{ padding: '10px 20px', borderRadius: '20px', border: '1px solid rgba(17,177,198,0.2)', background: 'white', color: '#0c5965', fontWeight: 500, fontSize: '0.9rem' }}
           >
             <option value="" disabled>Select project...</option>
             {projects.map(p => (

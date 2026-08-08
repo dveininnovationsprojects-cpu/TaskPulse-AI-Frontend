@@ -239,24 +239,58 @@ body {
   font-weight: 400;
 }
 
-select.form-control {
+/* Global & Filter Dropdown Styling (Unified across all modules and pages) */
+select,
+select.form-control,
+.custom-select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  background-color: rgba(255, 255, 255, 0.95);
   background-image: url("data:image/svg+xml;utf8,<svg fill='%2311b1c6' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
   background-repeat: no-repeat;
-  background-position: right 24px center;
-  background-size: 24px;
+  background-position: right 14px center;
+  background-size: 22px;
+  border: 1px solid rgba(17, 177, 198, 0.25);
+  border-radius: 20px;
+  padding: 8px 38px 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: 'Montserrat', sans-serif;
+  color: #0c5965;
   cursor: pointer;
-  padding-right: 48px; /* Extra padding to prevent text overlap with arrow */
+  box-shadow: 0 4px 14px rgba(17, 177, 198, 0.08);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  outline: none;
 }
 
-/* Custom styling for options inside select */
-select.form-control option {
+select:hover,
+select.form-control:hover,
+.custom-select:hover {
+  border-color: #11b1c6;
   background-color: #ffffff;
-  color: #11b1c6;
-  font-family: 'Montserrat', sans-serif;
-  padding: 10px;
+  box-shadow: 0 6px 20px rgba(17, 177, 198, 0.16);
+  transform: translateY(-1px);
+}
+
+select:focus,
+select.form-control:focus,
+.custom-select:focus {
+  border-color: #38bdf8;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.22);
+}
+
+select option {
+  background-color: #ffffff;
+  color: #0c5965;
+  font-weight: 500;
+  font-size: 0.88rem;
+  padding: 10px 14px;
 }
 
 .btn-pill {
@@ -419,6 +453,56 @@ select.form-control option {
   background-color: rgba(17, 177, 198, 0.5); /* Slightly darker on hover */
   background-clip: padding-box;
   border: 2px solid transparent;
+}
+
+/* Custom JS Select Menu Popup Styling (Modals & Forms) */
+.custom-select-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(17, 177, 198, 0.25) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px rgba(17, 177, 198, 0.18) !important;
+  z-index: 9999 !important;
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  margin-top: 6px !important;
+  padding: 6px 0 !important;
+  box-sizing: border-box !important;
+  animation: dropdownFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-select-option {
+  padding: 10px 18px !important;
+  cursor: pointer !important;
+  color: #0c5965 !important;
+  font-weight: 500 !important;
+  font-size: 0.88rem !important;
+  transition: background-color 0.2s ease, color 0.2s ease !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+}
+
+.custom-select-option:hover {
+  background-color: rgba(17, 177, 198, 0.12) !important;
+  color: #11b1c6 !important;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 

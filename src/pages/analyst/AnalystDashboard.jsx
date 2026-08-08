@@ -7,10 +7,10 @@ import DeveloperDashboardOverview from '../developer/modules/DashboardOverview';
 import ReportsModule from './modules/ReportsModule';
 
 const analystModules = [
-  { id: 'analytics', label: '1. Data Analysis' },
-  { id: 'executive', label: '2. Executive' },
-  { id: 'manager', label: '3. Manager Dashboard' },
-  { id: 'employee', label: '4. Employee Dashboard' },
+  { id: 'analytics', label: 'Data Analysis' },
+  { id: 'executive', label: 'Executive' },
+  { id: 'manager', label: 'Manager Dashboard' },
+  { id: 'employee', label: 'Employee Dashboard' },
   { id: 'reports', label: 'Reports & Analytics' }
 ];
 

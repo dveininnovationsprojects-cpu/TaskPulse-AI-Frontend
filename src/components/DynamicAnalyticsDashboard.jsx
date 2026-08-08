@@ -690,14 +690,6 @@ const DynamicAnalyticsDashboard = () => {
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
-                style={{
-                  padding: '6px 14px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(17, 177, 198, 0.3)',
-                  background: 'white',
-                  color: '#0c5965',
-                  fontSize: '0.85rem'
-                }}
               >
                 <option value="">All Projects</option>
                 {projects.map(p => (
