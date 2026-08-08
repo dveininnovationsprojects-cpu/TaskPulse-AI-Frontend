@@ -220,8 +220,8 @@ const DashboardLayout = ({ title = 'TaskPulse AI', modules = [], activeModule, o
 
       {/* Profile Modal */}
       {showProfileModal && createPortal(
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(12, 89, 101, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
-          <div style={{ position: 'relative', zIndex: 1, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.8)', borderRadius: '24px', width: '100%', maxWidth: '440px', padding: '32px 28px', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(12, 89, 101, 0.45)', backdropFilter: 'blur(6px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, padding: '20px' }}>
+          <div style={{ position: 'relative', zIndex: 1, background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.8)', borderRadius: '24px', width: '100%', maxWidth: '440px', maxHeight: '90vh', overflowY: 'auto', padding: '32px 28px', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.12)' }}>
 
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', paddingBottom: '14px', borderBottom: '1px solid rgba(17, 177, 198, 0.15)' }}>
